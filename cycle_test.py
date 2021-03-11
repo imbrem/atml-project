@@ -2,12 +2,12 @@ import networkx as nx
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import torch_geometric as gm 
+import torch_geometric 
 import numpy as np
 from tqdm import tqdm, trange
 import matplotlib.pyplot as plt
 
-from model import GGNN
+from model import GlobalGGNN
 
 def generate_split_cycles(n):
     for s in range(3, n - 2):
@@ -21,7 +21,7 @@ def generate_cycles(n):
         yield cycle
 
 def convert_graph(graph, label):
-    data = gm.utils.convert.from_networkx(graph)
+    data = torch_geometric.utils.convert.from_networkx(graph)
     data.x = torch.randn(data.num_nodes, 50)
     data.y = label
     return data
@@ -39,9 +39,9 @@ def train_test_splits(split_cycles, cycles, k, batch_size):
     assert n == len(cycles)
     for (train, test) in train_test_split_indices(n, k):
         train_data = [split_cycles[i] for i in train] + [cycles[i] for i in train]
-        train_loader = gm.data.DataLoader(train_data, batch_size, shuffle=True)
+        train_loader = torch_geometric.data.DataLoader(train_data, batch_size, shuffle=True)
         test_data = [split_cycles[i] for i in test] + [cycles[i] for i in test]
-        test_loader = gm.data.DataLoader(test_data, batch_size, shuffle=True)
+        test_loader = torch_geometric.data.DataLoader(test_data, batch_size, shuffle=True)
         yield (
             train_loader,
             test_loader
@@ -101,8 +101,7 @@ def validate(model, optimizer, split_cycles, cycles, k, batch_size, epochs=200):
 if __name__ == "__main__":
     split_cycles = [convert_graph(g, 0.0) for n in range(6, 16) for g in generate_split_cycles(n)]
     cycles = [convert_graph(g, 1.0) for n in range(6, 16) for g in generate_cycles(n)]
-    data_loader = gm.data.DataLoader(split_cycles + cycles, batch_size=110, shuffle=True)
-    ggnn = GGNN().cuda()
+    ggnn = GlobalGGNN(50, 1).cuda()
     optimizer = torch.optim.Adam(ggnn.parameters(), lr=0.01)
     losses, accuracy = validate(ggnn, optimizer, split_cycles, cycles, 5, 88)
     print(f"\n\nSplit accuracies: {accuracy}")

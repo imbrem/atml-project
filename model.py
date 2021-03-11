@@ -3,33 +3,26 @@ import torch_geometric
 from torch import nn
 import torch.nn.functional as F
 
-class GGNN(nn.Module):
-    def __init__(self, message_passing_layers=16, embedding_size=50):
-        super(GGNN, self).__init__()
-        self.message_passing_layers = nn.ModuleList([
-            torch_geometric.nn.GCNConv(embedding_size, embedding_size) for _ in range(0, message_passing_layers)
-        ])
-        self.hidden_layer = torch.nn.Linear(embedding_size, embedding_size)
-        self.final_layer = torch.nn.Linear(embedding_size, 1)
+
+class GlobalGGNN(nn.Module):
+    def __init__(self, input_size, output_size, num_layers=32, aggr='add', bias=True, **kwargs):
+        super(GlobalGGNN, self).__init__()
+        self.gated_graph_layer = torch_geometric.nn.GatedGraphConv(
+            out_channels=input_size, num_layers=num_layers, aggr=aggr, bias=bias, **kwargs)
+        self.final_layer = torch.nn.Linear(input_size, output_size)
 
     def forward(self, x, edge_index, batch):
-        for layer in self.message_passing_layers:
-            x = layer(x, edge_index)
-            x = F.relu(x)
-        
+        x = self.gated_graph_layer(x, edge_index)
         x = torch_geometric.nn.global_mean_pool(x, batch)
-        x = self.hidden_layer(x)
-        x = F.relu(x)
         x = self.final_layer(x)
         x = torch.sigmoid(x)
 
         return x
 
     def reset_parameters(self):
-        for layer in self.message_passing_layers:
-            layer.reset_parameters()
-        self.hidden_layer.reset_parameters()
+        self.gated_graph_layer.reset_parameters()
         self.final_layer.reset_parameters()
+
 
 class GGSNN(nn.Module):
     pass
