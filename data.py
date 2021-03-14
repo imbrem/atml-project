@@ -107,25 +107,24 @@ def create_adjacency_matrix(edges, n_nodes, n_edge_types):
 def create_pg_graph(datapoint, n_edge_types):
     """Convert a graph to pytorch geometric form"""
     edges, annotations, target = datapoint
-    x = torch.LongTensor(annotations)
+    x = torch.FloatTensor(annotations)
     directed_edge_index = torch.LongTensor([[edge[0]-1, edge[2]-1] for edge in edges])
     reverse_edge_index = torch.index_select(directed_edge_index, 1, torch.LongTensor([1, 0]))
     edge_index = torch.cat([directed_edge_index, reverse_edge_index], dim=0).T
-    print("Edge index", edge_index)
+    # print("Edge index", edge_index)
 
     edge_type_indices = torch.LongTensor([[i, edge[1]-1] for i, edge in enumerate(edges)])
     # print("Edge type", edge_type_indices)
     reverse_edge_type_indices = torch.LongTensor([[i+len(edges), edge[1]-1+n_edge_types] for i, edge in enumerate(edges)])
     full_edge_type_indices = torch.cat([edge_type_indices, reverse_edge_type_indices], dim=0)
-    print("Full edge", full_edge_type_indices)
+    # print("Full edge", full_edge_type_indices)
 
     edge_attr = torch.zeros(edge_index.size(1), n_edge_types * 2)
     for edge_type in full_edge_type_indices.numpy().tolist():
         edge_attr[tuple(edge_type)] = 1
 
-    y = torch.LongTensor([datapoint[2]-1])
+    y = torch.FloatTensor([datapoint[2]-1]).view(1, 1)
     return Data(x=x, edge_index=edge_index, edge_attr=edge_attr, y=y)
-
 
 
 class bAbIDataset:
@@ -147,12 +146,6 @@ class bAbIDataset:
             all_task_val_data = data_convert(all_task_val_data, 1)
             self.data = all_task_val_data[task_id]
 
-    # def __getitem__(self, index):
-    #     am = create_adjacency_matrix(self.data[index][0], self.n_node, self.n_edge_types)
-    #     annotation = self.data[index][1]
-    #     target = self.data[index][2] - 1
-    #     return am, annotation, target
-
     def __getitem__(self, index):
         return create_pg_graph(self.data[index], n_edge_types=self.n_edge_types)
 
@@ -160,7 +153,11 @@ class bAbIDataset:
         return len(self.data)
 
 
-class bAbIDataloader(DataLoader):
+if __name__ == "__main__":
+    from torch_geometric.data import DataLoader
 
-    def __init__(self, *args, **kwargs):
-        super(bAbIDataloader, self).__init__(*args, **kwargs)
+    dataroot = 'babi_data/processed_1/train/4_graphs.txt'
+    train_dataset = bAbIDataset(dataroot, 0, True)
+    loader = DataLoader(train_dataset, batch_size=2)
+    batch0 = next(iter(loader))
+    print(batch0.x, batch0.edge_index, batch0.batch, batch0.edge_attr, batch0.y)
