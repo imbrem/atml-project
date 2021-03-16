@@ -25,4 +25,7 @@ class GlobalGGNN(nn.Module):
 
 
 class GGSNN(nn.Module):
-    pass
+    def __init__(self, x_gated_graph, o_gated_graph):
+        super(GGSNN, self).__init__()
+        self.x_gated_graph = x_gated_graph
+        self.o_gated_graph = o_gated_graph
