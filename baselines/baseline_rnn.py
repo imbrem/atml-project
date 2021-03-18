@@ -1,8 +1,7 @@
 """
 Baseline RNN.
 
-Contains the definition of the BaselineRNN class, training and
-evaluation code.
+Contains the definition of the BaselineRNN class.
 
 Trained on symbolic data in raw sequence form using cross-entropy loss.
 
@@ -31,7 +30,9 @@ class BaselineRNN(nn.Module):
                                 hidden_size=hidden_size)
 
     def forward(self, input):
+        # TODO what processing do I need here
         output, hidden = self.rnn_layer(input)
+        # TODO scoring / classification
         return output, hidden
 
     def initHidden(self):
