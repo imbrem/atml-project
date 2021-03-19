@@ -1,7 +1,14 @@
 """
+Data preprocessing module.
+
+Converts the bAbI dataset files into tensors ready for training.
+
 This is not original code, but is adapted from the bAbI dataset processing code from
 https://github.com/chingyaoc/ggnn.pytorch/blob/master/utils/data/dataset.py and
 https://github.com/chingyaoc/ggnn.pytorch/blob/master/utils/data/dataloader.py
+
+RNN processing part adapts the original code at 
+https://github.com/yujiali/ggnn/blob/master/babi/babi_data.lua
 """
 
 
@@ -15,10 +22,10 @@ def load_graphs_from_file(file_name):
     data_list = []
     edge_list = []
     target_list = []
-    with open(file_name,'r') as f:
+    with open(file_name, 'r') as f:
         for line in f:
             if len(line.strip()) == 0:
-                data_list.append([edge_list,target_list])
+                data_list.append([edge_list, target_list])
                 edge_list = []
                 target_list = []
             else:
@@ -89,7 +96,8 @@ def data_convert(data_list, n_annotation_dim):
             task_output = target[-1]
             annotation = np.zeros([n_nodes, n_annotation_dim])
             annotation[target[1]-1][0] = 1
-            task_data_list[task_type-1].append([edge_list, annotation, task_output])
+            task_data_list[task_type -
+                           1].append([edge_list, annotation, task_output])
     return task_data_list
 
 
@@ -108,15 +116,20 @@ def create_pg_graph(datapoint, n_edge_types):
     """Convert a graph to pytorch geometric form"""
     edges, annotations, target = datapoint
     x = torch.FloatTensor(annotations)
-    directed_edge_index = torch.LongTensor([[edge[0]-1, edge[2]-1] for edge in edges])
-    reverse_edge_index = torch.index_select(directed_edge_index, 1, torch.LongTensor([1, 0]))
+    directed_edge_index = torch.LongTensor(
+        [[edge[0]-1, edge[2]-1] for edge in edges])
+    reverse_edge_index = torch.index_select(
+        directed_edge_index, 1, torch.LongTensor([1, 0]))
     edge_index = torch.cat([directed_edge_index, reverse_edge_index], dim=0).T
     # print("Edge index", edge_index)
 
-    edge_type_indices = torch.LongTensor([[i, edge[1]-1] for i, edge in enumerate(edges)])
+    edge_type_indices = torch.LongTensor(
+        [[i, edge[1]-1] for i, edge in enumerate(edges)])
     # print("Edge type", edge_type_indices)
-    reverse_edge_type_indices = torch.LongTensor([[i+len(edges), edge[1]-1+n_edge_types] for i, edge in enumerate(edges)])
-    full_edge_type_indices = torch.cat([edge_type_indices, reverse_edge_type_indices], dim=0)
+    reverse_edge_type_indices = torch.LongTensor(
+        [[i+len(edges), edge[1]-1+n_edge_types] for i, edge in enumerate(edges)])
+    full_edge_type_indices = torch.cat(
+        [edge_type_indices, reverse_edge_type_indices], dim=0)
     # print("Full edge", full_edge_type_indices)
 
     edge_attr = torch.zeros(edge_index.size(1), n_edge_types * 2)
@@ -131,6 +144,7 @@ class bAbIDataset:
     """
     Load bAbI tasks for GGNN
     """
+
     def __init__(self, path, task_id, is_train):
         all_data = load_graphs_from_file(path)
         self.n_edge_types = find_max_edge_id(all_data)
