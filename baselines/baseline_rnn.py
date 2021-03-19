@@ -3,6 +3,9 @@ Baseline RNN.
 
 Contains the definition of the BaselineRNN class.
 
+Takes in a sequence of token IDs as input and makes a single 
+prediction about the sequence at the end.
+
 Trained on symbolic data in raw sequence form using cross-entropy loss.
 
 The implementation in the paper uses 50-dimensional embeddings and
@@ -10,9 +13,7 @@ The implementation in the paper uses 50-dimensional embeddings and
 treated as in a classification problem.
 """
 
-import torch
 import torch.nn as nn
-import torch.nn.functional as F
 
 
 class BaselineRNN(nn.Module):
@@ -26,17 +27,22 @@ class BaselineRNN(nn.Module):
         super(BaselineRNN, self).__init__()
         self.input_size = input_size
         self.hidden_size = hidden_size
+
         self.rnn_layer = nn.RNN(input_size=input_size,
-                                hidden_size=hidden_size)
+                                hidden_size=hidden_size,
+                                batch_first=True)
 
-    def forward(self, input):
-        # TODO what processing do I need here
+    def forward(self, input, n_outputs=1):
+        """
+        Args:
+            input: (batch, seq_len, input_size)
+        Returns:
+            output: (batch, n_outputs, hidden_size)
+            hidden: (batch, num_layers, hidden_size)
+        """
+        # initial hidden representation defaults to 0
         output, hidden = self.rnn_layer(input)
-        # TODO scoring / classification
-        return output, hidden
-
-    def initHidden(self):
-        return torch.zeros(self.hidden_size)
+        return output[:, -n_outputs:, :], hidden
 
     def reset_parameters(self):
         self.rnn_layer.reset_parameters()
