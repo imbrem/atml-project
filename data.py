@@ -196,20 +196,16 @@ def load_rnn_data_from_file(file_name, n_targets=1):
                 return seq, target
             else:  # extend sequence, append special end target
                 ext_seq = torch.Tensor(seq.size(0), seq.size(1)+n_targets)
-                # TODO not sure about assignment after copy
-                ext_seq = ext_seq.narrow(1, 0, seq.size(1)).copy(seq)
-                # TODO assignment?
-                torch.repeatTensor(ext_seq.narrow(1, seq.size(1), n_targets), seq.narrow(
-                    1, seq.size(1), 0), 0, n_targets)
+                ext_seq[:, :-n_targets] = seq
+                ext_seq[:, -n_targets:] = ext_seq.narrow(
+                    1, seq.size(1)-1, 1).repeat(1, n_targets)
 
-                ext_target = torch.Tensor(seq.size(0), n_targets)
-                # TODO not sure about assignment after copy
-                ext_target = ext_target.narrow(1, 0, n_targets).copy(target)
-                # TODO required assignment? `narrow` is not in place
+                ext_target = torch.Tensor(seq.size(0), n_targets+1)
+                ext_target[:, :-1] = target
                 # append special end symbol
-                ext_target.narrow(1, n_targets, 0).fill(
-                    target.max()+1)  # TODO +1?
+                ext_target[:, n_targets] = target.max() + 1
                 return ext_seq, ext_target
+
         else:  # sequence length not equal
             target = []
             seq = []
