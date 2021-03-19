@@ -7,7 +7,7 @@ This is not original code, but is adapted from the bAbI dataset processing code 
 https://github.com/chingyaoc/ggnn.pytorch/blob/master/utils/data/dataset.py and
 https://github.com/chingyaoc/ggnn.pytorch/blob/master/utils/data/dataloader.py
 
-RNN processing part adapts the original code at 
+RNN processing part adapts the original code at
 https://github.com/yujiali/ggnn/blob/master/babi/babi_data.lua
 """
 
@@ -16,6 +16,8 @@ import numpy as np
 import torch
 from torch.utils.data import DataLoader
 from torch_geometric.data import Data
+
+# GRAPH DATA
 
 
 def load_graphs_from_file(file_name):
@@ -165,6 +167,92 @@ class bAbIDataset:
 
     def __len__(self):
         return len(self.data)
+
+# RNN DATA
+
+# TODO check all off-by-1s (ugh Lua's 1-indexing....)
+
+
+def load_rnn_data_from_file(file_name, n_targets=1):
+    dataset = []
+    with open(file_name, 'r') as f:
+        for line in f:
+            example = map(int, line.split())
+            dataset.append(example)
+
+        uniform_length = True
+        seq_len = len(dataset[0])
+        for i in range(1, len(dataset)):
+            if seq_len != len(dataset[i]):
+                uniform_length = False
+                break
+
+        if uniform_length:
+            data = torch.Tensor(dataset)
+            seq = data.narrow(1, 0, data.size(1)-n_targets)
+            target = data.narrow(1, data.size(1)-n_targets, n_targets)
+
+            if n_targets == 1:
+                return seq, target
+            else:  # extend sequence, append special end target
+                ext_seq = torch.Tensor(seq.size(0), seq.size(1)+n_targets)
+                # TODO not sure about assignment after copy
+                ext_seq = ext_seq.narrow(1, 0, seq.size(1)).copy(seq)
+                # TODO assignment?
+                torch.repeatTensor(ext_seq.narrow(1, seq.size(1), n_targets), seq.narrow(
+                    1, seq.size(1), 0), 0, n_targets)
+
+                ext_target = torch.Tensor(seq.size(0), n_targets)
+                # TODO not sure about assignment after copy
+                ext_target = ext_target.narrow(1, 0, n_targets).copy(target)
+                # TODO required assignment? `narrow` is not in place
+                # append special end symbol
+                ext_target.narrow(1, n_targets, 0).fill(
+                    target.max()+1)  # TODO +1?
+                return ext_seq, ext_target
+        else:  # sequence length not equal
+            target = []
+            seq = []
+            max_target = 0
+
+            for i in range(len(dataset)):
+                s = torch.Tensor(dataset[i])
+                s = s.resize(0, s.nelement())
+
+                if n_targets == 1:
+                    seq[i] = s.narrow(1, 0, s.size(1)-n_targets)
+                    target[i] = s.narrow(1, s.size(1)-n_targets, n_targets)
+                else:
+                    seq[i] = torch.Tensor(1, s.size(1)+1)  # TODO +1??
+                    seq[i].narrow(1, 0, s.size(
+                        1)-n_targets).copy(s.narrow(1, 0, s.size(1)-n_targets))
+                    seq[i].narrow(
+                        1, s.size(1)-n_targets, n_targets).fill(s[s.size(1)-n_targets+1])  # TODO +1?
+
+                    target[i] = torch.Tensor(1, n_targets+1)
+                    target[i].narrow(1, 0, n_targets).copy(
+                        s.narrow(1, s.size(1)-n_targets, n_targets))
+
+                    t_max = target[i].narrow(1, 0, n_targets).max()
+                    if t_max > max_target:
+                        max_target = t_max
+
+            # append special end symbol
+            if n_targets != 1:
+                for i in range(len(dataset)):
+                    target[i][target[i].nelement()] = max_target + 1
+
+            return seq, target
+
+
+# TODO replace with a standard tensor library function
+def find_max_in_list_of_tensors(list):
+    max = list[0][0]
+    for v in list:
+        m = v.max()
+        if m > max:
+            max = m
+    return max
 
 
 if __name__ == "__main__":
