@@ -238,6 +238,7 @@ def load_rnn_data_from_file(file_name, n_targets=1):
                 for i in range(len(dataset)):
                     target[i][:, -1] = max_target + 1
 
+            # TODO shouldn't these be tensors
             return seq, target
 
 
