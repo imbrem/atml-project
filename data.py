@@ -187,8 +187,8 @@ def load_rnn_data_from_file(file_name, n_targets=1):
 
         if uniform_length:
             data = torch.tensor(dataset)
-            seq = data.narrow(1, 0, data.size(1)-n_targets)
-            target = data.narrow(1, data.size(1)-n_targets, n_targets)
+            seq = data[:, :data.size(1)-n_targets]
+            target = data[:, data.size(1)-n_targets:]
 
             if n_targets == 1:
                 return seq, target
