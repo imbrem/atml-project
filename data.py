@@ -170,8 +170,6 @@ class bAbIDataset:
 
 # RNN DATA
 
-# TODO check all off-by-1s (ugh Lua's 1-indexing....)
-
 
 def load_rnn_data_from_file(file_name, n_targets=1):
     dataset = []
@@ -188,7 +186,7 @@ def load_rnn_data_from_file(file_name, n_targets=1):
                 break
 
         if uniform_length:
-            data = torch.Tensor(dataset)
+            data = torch.tensor(dataset)
             seq = data.narrow(1, 0, data.size(1)-n_targets)
             target = data.narrow(1, data.size(1)-n_targets, n_targets)
 
@@ -212,31 +210,33 @@ def load_rnn_data_from_file(file_name, n_targets=1):
             max_target = 0
 
             for i in range(len(dataset)):
-                s = torch.Tensor(dataset[i])
-                s = s.resize(0, s.nelement())
+                s = torch.tensor(dataset[i])
+                s.resize_(1, s.nelement())
 
                 if n_targets == 1:
-                    seq[i] = s.narrow(1, 0, s.size(1)-n_targets)
-                    target[i] = s.narrow(1, s.size(1)-n_targets, n_targets)
+                    seq.append(s[:, :s.size(1)-n_targets])
+                    target.append(s[:, s.size(1)-n_targets:])
                 else:
-                    seq[i] = torch.Tensor(1, s.size(1)+1)  # TODO +1??
-                    seq[i].narrow(1, 0, s.size(
-                        1)-n_targets).copy(s.narrow(1, 0, s.size(1)-n_targets))
-                    seq[i].narrow(
-                        1, s.size(1)-n_targets, n_targets).fill(s[s.size(1)-n_targets+1])  # TODO +1?
+                    # TODO why does it only extend it by 1?
+                    # TODO why is sequence extended
+                    seq.append(torch.Tensor(1, s.size(1)+1))
+                    seq[i][:, :s.size(1)-n_targets] = s[:,
+                                                        :s.size(1)-n_targets]
+                    seq[i][:, s.size(1)-n_targets:] = s[:, s.size(1)-n_targets]
 
-                    target[i] = torch.Tensor(1, n_targets+1)
-                    target[i].narrow(1, 0, n_targets).copy(
-                        s.narrow(1, s.size(1)-n_targets, n_targets))
+                    # last entry will be the special end symbol
+                    target.append(torch.Tensor(1, n_targets+1))
+                    target[i][:, :n_targets] = s[:,
+                                                 s.size(1)-n_targets:s.size(1)]
 
-                    t_max = target[i].narrow(1, 0, n_targets).max()
+                    t_max = target[i][0, :n_targets].max()
                     if t_max > max_target:
                         max_target = t_max
 
             # append special end symbol
             if n_targets != 1:
                 for i in range(len(dataset)):
-                    target[i][target[i].nelement()] = max_target + 1
+                    target[i][:, -1] = max_target + 1
 
             return seq, target
 
