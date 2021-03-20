@@ -241,14 +241,8 @@ def load_rnn_data_from_file(file_name, n_targets=1):
             return seq, target
 
 
-# TODO replace with a standard tensor library function
 def find_max_in_list_of_tensors(list):
-    max = list[0][0]
-    for v in list:
-        m = v.max()
-        if m > max:
-            max = m
-    return max
+    return max(list(map(torch.max, list)))
 
 
 if __name__ == "__main__":
