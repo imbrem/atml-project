@@ -68,49 +68,31 @@ optimizer = torch.optim.Adam(rnn.parameters(), lr=args.learning_rate)
 
 torch.manual_seed(args.seed)
 
-# TODO fix load_rnn_data_from_file to only return tensors
-x_train, t_train = load_rnn_data_from_file(args.data_file, args.n_targets)
+seq_train, target_train = load_rnn_data_from_file(
+    args.data_file, args.n_targets)
 
-# TODO get rid of this
-# uniform length if x_train is a tensor, otherwise x_train is a list
-uniform_length = torch.is_tensor(x_train)
-
-if uniform_length:
-    vocab_size = x_train.max()
-    embedding_size = args.embedding_size
-    hidden_size = args.hidden_size
-    output_size = t_train.max()
-else:  # sequences of different lengths
-    vocab_size = find_max_in_list_of_tensors(x_train)
-    embedding_size = args.embedding_size
-    hidden_size = args.hidden_size
-    output_size = find_max_in_list_of_tensors(t_train)
+vocab_size = seq_train.max()
+embedding_size = args.embedding_size
+hidden_size = args.hidden_size
+output_size = target_train.max()
 
 
 # split training data into train & val
 # checking if validation data file exists
 if Path(args.data_file + '.val').is_file():
     print('Validation file exists\nSplitting part of training data for validation.')
-    if uniform_length:
-        # TODO split_set_tensor
-        x_train, t_train, x_val, t_val = split_set_tensor(
-            x_train, t_train, args.n_train, args.n_val, True)
-    else:
-        # TODO split_set_input_output
-        x_train, t_train, x_val, t_val = split_set_input_output(
-            x_train, t_train, args.n_train, args.n_val, True)
+    # TODO split_set_tensor
+    seq_train, target_train, seq_val, target_val = split_set_tensor(
+        seq_train, target_train, args.n_train, args.n_val, True)
 else:
     # TODO isn't this behaving in the opposite way
     # if n_train is 0, automatically use all the training data available
     if args.n_train:
-        if uniform_length:
-            x_train, t_train = split_set_tensor(
-                x_train, t_train, args.n_train, 0, True)
-        else:
-            x_train, t_train = split_set_input_output(
-                x_train, t_train, args.n_train, 0, True)
+        seq_train, target_train = split_set_tensor(
+            seq_train, target_train, args.n_train, 0, True)
+
     print('Loading validation data from {}.val'.format(args.data_file))
-    x_val, t_val = load_rnn_data_from_file(
+    seq_val, target_val = load_rnn_data_from_file(
         args.data_file + '.val', args.n_targets)
 
 
@@ -125,27 +107,12 @@ print()
 def batch_loader(*args):
     pass
 
-# TODO batch loading
 
-
-def paired_data_loader(*args):
-    pass
-
-
-if uniform_length:
-    # TODO batch loader
-    train_data_loader = batch_loader(x_train, t_train, args.batch_size, True)
-    print('Training set:\t{} sequences'.format(x_train.size()))
-    print('Validation set:\t{} sequences'.format(x_val.size()))
-    n_train = x_train.size(0)
-else:
-    # TODO paired data loader (?)
-    train_data_loader = paired_data_loader(x_train, t_train, True)
-    print('Training set:\t{} sequences'.format(x_train.size()))
-    print('Validation set:\t{} sequences'.format(x_val))
-    # TODO fix typing
-    # because in this case x_train is assumed to be a tensor
-    n_train = len(x_train)
+train_data_loader = batch_loader(
+    seq_train, target_train, args.batch_size, True)
+print('Training set:\t{} sequences'.format(seq_train.size()))
+print('Validation set:\t{} sequences'.format(seq_val.size()))
+n_train = seq_train.size(0)
 
 # PREPARE MODEL
 
@@ -186,29 +153,13 @@ def forward_evaluation(x):
         params.copy(x)
     optimizer.zero_grad()
 
-    if uniform_length:
-        x_batch, t_batch = train_data_loader.next()
-        if args.n_targets > 1:
-            t_batch = torch.reshape(t_batch, t_batch.size(
-                0) * args.n_targets, t_batch.size(1) / args.n_targets)
-        y = model(x_batch, args.n_targets)
-        loss = criterion(y, t_batch)
-        loss.backward()
-    else:
-        batch_loss = 0
-        for i in range(args.batch_size):
-            x_batch, t_batch = train_data_loader.next()
-            if args.n_targets > 1:
-                t_batch = torch.reshape(t_batch, t_batch.size(
-                    0) * args.n_targets, t_batch.size(1) / args.n_targets)
-            y = model(x_batch, args.n_targets)
-            loss = criterion(y, t_batch)
-            batch_loss += loss
-            loss.backward()
-        batch_loss /= args.bach_size
-
-        # TODO gradient scaling
-        # grad_params.mul(1 / opt.mb)
+    x_batch, t_batch = train_data_loader.next()
+    if args.n_targets > 1:
+        t_batch = torch.reshape(t_batch, t_batch.size(
+            0) * args.n_targets, t_batch.size(1) / args.n_targets)
+    y = model(x_batch, args.n_targets)
+    loss = criterion(y, t_batch)
+    loss.backward()
 
     # TODO clamping
     # grad_params: clamp(-5, 5)
@@ -218,44 +169,22 @@ def forward_evaluation(x):
 
 
 def eval_loss(model, x, t):
-    if uniform_length:
-        if args.n_targets > 1:
-            t = torch.reshape(t, t.size(0) * args.n_targets,
-                              t.size(1) / args.n_targets)
-        return criterion(model(x, args.n_targets), t)
-    else:
-        total_loss = 0
-        for i in range(len(x)):
-            tt = t[i]
-            if args.n_targets > 1:
-                tt = torch.reshape(tt, tt.size(
-                    0) * args.n_targets, tt.size(1) / args.n_targets)
-            total_loss += criterion(model((x[i], tt), tt))
-        return total_loss / len(x)
+    if args.n_targets > 1:
+        t = torch.reshape(t, t.size(0) * args.n_targets,
+                          t.size(1) / args.n_targets)
+    return criterion(model(x, args.n_targets), t)
 
 
 def eval_error(model, x, t):
-    if uniform_length:
-        pred = model.predict(x, args.n_targets)
-        # TODO why is this type conversion...
-        # pred = pred.typeAs(t)
-        if args.n_targets > 1:
-            # TODO wth
-            return pred.ne(t).type('torch.DoubleTensor').sum(1).gt(0).type('torch.DoubleTensor').mean()
-        else:
-            # TODO fix
-            return pred.ne(t).type('torch.DoubleTensor').mean()
+    pred = model.predict(x, args.n_targets)
+    # TODO why is this type conversion...
+    # pred = pred.typeAs(t)
+    if args.n_targets > 1:
+        # TODO wth
+        return pred.ne(t).type('torch.DoubleTensor').sum(1).gt(0).type('torch.DoubleTensor').mean()
     else:
-        total_error = 0
-        for i in range(len(x)):
-            pred = model.predict(x[i], args.n_targets)
-            if args.n_targets > 1:
-                # TODO fix
-                total_error += pred.typeAs(t[i]).ne(t[i]
-                                                    ).type('torch.DoubleTensor').sum().gt(0).sum()
-            else:
-                total_error += pred.typeAs(t[i]).ne(t[i]).sum()
-        return total_error / len(x)
+        # TODO fix
+        return pred.ne(t).type('torch.DoubleTensor').mean()
 
 
 train_records = []
@@ -287,7 +216,7 @@ def train():
 
         plot_iter += 1
 
-        val_err = eval_error(model, x_val, t_val)
+        val_err = eval_error(model, seq_val, target_val)
         print('iter {%d}, grad_scale={%.8f}, train_loss={%.6f}, val_error_rate={%.6f}, time={%.2f}'.format(
             iter, torch.abs(grad_params).max(), batch_loss, val_err, timer.time().real))
 
@@ -320,36 +249,7 @@ def train():
     # TODO torch.save() the final model
     # rnn.save_rnn_model(opt.outputdir .. '/model_end', params, opt.model, vocab_size, embed_size, hid_size, output_size)
 
-# function plot_learning_curve(records, fname, ylabel, xlabel)
-#     xlabel=xlabel or '#iterations'
-#     local rec=torch.Tensor(records)
-#     gnuplot.pngfigure(opt.outputdir .. '/' .. fname .. '.png')
-#     gnuplot.plot(rec: select(2, 1), rec: select(2, 2))
-#     gnuplot.xlabel(xlabel)
-#     gnuplot.ylabel(ylabel)
-#     gnuplot.plotflush()
-#     collectgarbage()
-# end
-
-# function generate_plots()
-#     if not pcall(function() plot_learning_curve(train_records, 'train', 'training loss') end) then
-#         print('[Warning] Failed to update training curve plot. Error ignored.')
-#     end
-#     if not pcall(function() plot_learning_curve(val_records, 'val', 'validation error rate') end) then
-#         print('[Warning] Failed to update validation curve plot. Error ignored.')
-#     end
-#     # plot_learning_curve(train_records, 'train', 'training loss')
-#     # plot_learning_curve(val_records, 'val', 'validation error rate')
-#     if eval_train_err then
-#         if not pcall(function() plot_learning_curve(train_error_records, 'train-err', 'training error rate') end) then
-#             print(
-#                 '[Warning] Failed to update training error curve plot. Error ignored.')
-#         end
-#         # plot_learning_curve(train_error_records,
-#                                 'train-err', 'training error rate')
-#     end
-#     collectgarbage()
-# end
+# TODO plotting
 
 # TODO if __name__ == "__main__":
 # train()
