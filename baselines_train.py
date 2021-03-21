@@ -191,42 +191,47 @@ model.print_model()
 print('Loss: {}\n'.format(criterion))
 
 # TODO get parameters
+# TODO get rid of them
 params, grad_params = model.get_parameters()
 
 print('Total number of parameters: {}\n'.format(params.nelement()))
 
-# # TODO what does this do?
-# def feval(x):
-#     if x != params:
-#         params.copy(x)
-#     grad_param.zero()
 
-#     if uniform_length:
-#         x_batch, t_batch = train_data_loader.next()
-#         if args.n_targets > 1:
-#             t_batch = torch.reshape(t_batch, t_batch.size(0) * args.n_targets, t_batch.size(1) / args.n_targets)
-#         y = model(x_batch, args.n_targets)
-#         loss = criterion(y, t_batch)
-#         loss.backward(y, t_batch)
+def forward_evaluation(x):
+    # TODO what does this do?
+    if x != params:
+        params.copy(x)
+    optimizer.zero_grad()
 
-#     else
-#         loss=0
-#         for i=1, opt.mb do
-#             x_batch, t_batch=train_data_loader: next()
-#             if opt.ntargets > 1 then
-#                 t_batch=torch.reshape(t_batch, t_batch: size(1) * opt.ntargets, t_batch: size(2) / opt.ntargets)
-#             end
-#             y=net: forward(x_batch, opt.ntargets)
-#             loss=loss + c: forward(y, t_batch)
-#             net: backward(c: backward(y, t_batch))
-#         end
-#         loss=loss / opt.mb
-#         grad_params: mul(1 / opt.mb)
-#     end
-#     grad_params: clamp(-5, 5)
+    if uniform_length:
+        x_batch, t_batch = train_data_loader.next()
+        if args.n_targets > 1:
+            t_batch = torch.reshape(t_batch, t_batch.size(
+                0) * args.n_targets, t_batch.size(1) / args.n_targets)
+        y = model(x_batch, args.n_targets)
+        loss = criterion(y, t_batch)
+        loss.backward()
+    else:
+        batch_loss = 0
+        for i in range(args.batch_size):
+            x_batch, t_batch = train_data_loader.next()
+            if args.n_targets > 1:
+                t_batch = torch.reshape(t_batch, t_batch.size(
+                    0) * args.n_targets, t_batch.size(1) / args.n_targets)
+            y = model(x_batch, args.n_targets)
+            loss = criterion(y, t_batch)
+            batch_loss += loss
+            loss.backward()
+        batch_loss /= args.bach_size
 
-#     return loss, grad_params
-# end
+        # TODO gradient scaling
+        # grad_params.mul(1 / opt.mb)
+
+    # TODO clamping
+    # grad_params: clamp(-5, 5)
+    optimizer.step()
+
+    return loss, grad_params
 
 # function eval_loss(model, x, t)
 #     if uniform_length then
