@@ -12,6 +12,7 @@ from torch import nn
 import torch
 import argparse
 from pathlib import Path
+import math
 
 # def train(x, y):
 #     optimizer.zero_grad()
@@ -24,7 +25,7 @@ from pathlib import Path
 
 #     optimizer.step()
 
-""" Argument parsing """
+# ARGUMENT PARSING
 
 parser = argparse.ArgumentParser()
 
@@ -82,7 +83,7 @@ Path(args.output_dir).mkdir(parents=True, exist_ok=True)
 print('Checkpoints will be saved to ', args.output_dir)
 # torch.save(args, args.output_dir + '/params')
 
-""" Prepare data """
+# PREPARE DATA
 
 torch.manual_seed(args.seed)
 
@@ -165,48 +166,49 @@ else:
     # because in this case x_train is assumed to be a tensor
     n_train = len(x_train)
 
-# print('Number of output classes: ' .. output_size)
-# print('')
+# PREPARE MODEL
 
-# if opt.nepochs > 0 then
-#     opt.maxiters=opt.nepochs * math.ceil(n_train / opt.mb)
-# end
-# print('Total number of weight updates: ' .. opt.maxiters)
-# print('')
+# TODO separate printing
 
-# if opt.model == 'rnn' then
-#     net=rnn.RNN(vocab_size, embed_size, hid_size, output_size)
-# elseif opt.model == 'lstm' then
-#     net=rnn.LSTM(vocab_size, embed_size, hid_size, output_size)
-# else
-#     error('Unknown model type: ' .. opt.model)
-# end
-# c=nn.CrossEntropyCriterion()
+print('Number of output classes: {}\n'.format(output_size))
 
-# net: print_model()
-# print(c)
-# print('')
+if args.n_epochs > 0:
+    args.max_iters = args.n_epochs * math.ceil(n_train * 1. / args.batch_size)
+print('Total number of weight updates: {}\n'.format(args.max_iters))
 
-# params, grad_params=net: getParameters()
+# TODO fix model initialisation
+if args.model == 'rnn':
+    model = rnn.RNN(vocab_size, embedding_size, hidden_size, output_size)
+# elif args.model == 'lstm':
+#     model =rnn.LSTM(vocab_size, embedding_size, hidden_size, output_size)
+else:
+    argparse.ArgumentError('Unknown model type: {}'.format(args.model))
 
-# print('Total number of parameters: ' .. params: nElement())
-# print('')
+# TODO get rid of criterion
+criterion = nn.CrossEntropyCriterion()
 
-# function feval(x)
-#     if x ~=params then
-#         params: copy(x)
-#     end
-#     grad_params: zero()
+model.print_model()
+print('Loss: {}\n'.format(criterion))
 
-#     local x_batch, t_batch, y, loss
-#     if uniform_length then
-#         x_batch, t_batch=train_data_loader: next()
-#         if opt.ntargets > 1 then
-#             t_batch=torch.reshape(t_batch, t_batch: size(1) * opt.ntargets, t_batch: size(2) / opt.ntargets)
-#         end
-#         y=net: forward(x_batch, opt.ntargets)
-#         loss=c: forward(y, t_batch)
-#         net: backward(c: backward(y, t_batch))
+# TODO get parameters
+params, grad_params = model.get_parameters()
+
+print('Total number of parameters: {}\n'.format(params.nelement()))
+
+# # TODO what does this do?
+# def feval(x):
+#     if x != params:
+#         params.copy(x)
+#     grad_param.zero()
+
+#     if uniform_length:
+#         x_batch, t_batch = train_data_loader.next()
+#         if args.n_targets > 1:
+#             t_batch = torch.reshape(t_batch, t_batch.size(0) * args.n_targets, t_batch.size(1) / args.n_targets)
+#         y = model(x_batch, args.n_targets)
+#         loss = criterion(y, t_batch)
+#         loss.backward(y, t_batch)
+
 #     else
 #         loss=0
 #         for i=1, opt.mb do
