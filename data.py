@@ -246,6 +246,17 @@ def find_max_in_list_of_tensors(lst):
     return max(list(map(torch.max, lst)))
 
 
+# TODO translate
+def split_set_tensor(x_train, t_train, n_train, n_val, some_boolean):
+    pass
+
+# TODO translate
+
+
+def split_set_input_output(x_train, t_train, n_train, n_val, some_boolean):
+    pass
+
+
 if __name__ == "__main__":
     from torch_geometric.data import DataLoader
 
