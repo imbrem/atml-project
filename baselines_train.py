@@ -14,58 +14,39 @@ import argparse
 from pathlib import Path
 import math
 
-# def train(x, y):
-#     optimizer.zero_grad()
-
-#     for i in range(line_tensor.size()[0]):
-#         output, hidden = rnn(line_tensor[i], hidden)
-
-#     loss = criterion(output, category_tensor)
-#     loss.backward()
-
-#     optimizer.step()
-
 # ARGUMENT PARSING
 
 parser = argparse.ArgumentParser()
 
-parser.add_argument('--learning_rate', default=1e-3,
-                    type=float, help='learning rate')
-# parser.add_argument('--momentum', default=0, type=float, help='momentum')
-parser.add_argument('--batch_size', default=10,
-                    type=int, help='minibatch size')
-parser.add_argument('--n_epochs', default=0, type=int,
-                    help='number of epochs to train, if this is set, maxiters will not be used')
-parser.add_argument('--max_iters', default=1000, type=int,
-                    help='maximum number of weight updates')
-parser.add_argument('--print_every', default=10, type=int,
-                    help='print training information after this number of weight updates')
-parser.add_argument('--save_every', default=100, type=int,
-                    help='save checkpoint after this number of weight updates')
-parser.add_argument('--plot_every', default=10, type=int,
-                    help='update training curves after this number of weight updates')
-parser.add_argument('--optimizer', default='adam', type=str,
-                    help='type of optimization algorithm to use')
-parser.add_argument('--embedding_size', default=50, type=int,
-                    help='dimensionality of the embeddings')
-parser.add_argument('--hidden_size', default=50, type=int,
-                    help='dimensionality of the hidden layers')
-parser.add_argument('--n_targets', default=1, type=int,
-                    help='number of targets for each example, if > 1 the targets will be treated as a sequence')
-parser.add_argument('--n_threads', default=1, type=int,
-                    help='set the number of threads to use with this process')
-parser.add_argument('--n_train', default=0, type=int,
-                    help='number of training instances, 0 to use all available')
-parser.add_argument('--n_val', default=50, type=int,
-                    help='number of validation instances, this will not be used if datafile.val exists')
-parser.add_argument('--output_dir', default='.',
-                    type=str, help='output directory')
-parser.add_argument('--data_file', default='', type=str,
-                    help='should contain lists of edges and questions in standard format')
+# autopep8: off
+# Model parameters
 parser.add_argument('--model', default='rnn', type=str, help='rnn or lstm')
-parser.add_argument('--seed', default=8, type=int, help='random seed')
+parser.add_argument('--embedding_size', default=50, type=int, help='dimensionality of the embeddings')
+parser.add_argument('--hidden_size', default=50, type=int, help='dimensionality of the hidden layers')
+parser.add_argument('--n_targets', default=1, type=int, help='number of targets for each example, if > 1 the targets will be treated as a sequence')
 
-# parser.add_argument('-gpuid', -1, 'ID of the GPU to use, not using any GPUs if <= 0')
+# Data parameters
+parser.add_argument('--n_train', default=0, type=int, help='number of training instances, 0 to use all available')
+parser.add_argument('--n_val', default=50, type=int, help='number of validation instances (will not be used if datafile.val exists)')
+
+# Training parameters
+parser.add_argument('--learning_rate', default=1e-3,type=float, help='learning rate')
+parser.add_argument('--optimizer', default='adam', type=str, help='type of optimization algorithm to use')
+parser.add_argument('--batch_size', default=10,type=int, help='minibatch size')
+parser.add_argument('--n_epochs', default=0, type=int, help='number of epochs to train, (overrides maxiters)')
+parser.add_argument('--max_iters', default=1000, type=int, help='maximum number of weight updates')
+parser.add_argument('--n_threads', default=1, type=int, help='set the number of threads to use with this process')
+
+# Checkpoint and logging parameters
+parser.add_argument('--data_file', default='', type=str)
+parser.add_argument('--output_dir', default='.', type=str, help='output directory')
+parser.add_argument('--print_every', default=10, type=int, help='frequency of training information logs')
+parser.add_argument('--save_every', default=100, type=int, help='frequency of checkpoints')
+parser.add_argument('--plot_every', default=10, type=int, help='frequency of training curve updates')
+
+parser.add_argument('--seed', default=8, type=int, help='random seed')
+# autopep8: on
+
 args = parser.parse_args()
 
 
@@ -381,3 +362,15 @@ def train():
 #     loader = DataLoader(train_dataset, batch_size=2)
 #     batch0 = next(iter(loader))
 #     print(batch0.x, batch0.edge_index, batch0.batch, batch0.edge_attr, batch0.y)
+
+
+# def train(x, y):
+#     optimizer.zero_grad()
+
+#     for i in range(line_tensor.size()[0]):
+#         output, hidden = rnn(line_tensor[i], hidden)
+
+#     loss = criterion(output, category_tensor)
+#     loss.backward()
+
+#     optimizer.step()
