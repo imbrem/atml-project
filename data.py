@@ -171,6 +171,20 @@ class bAbIDataset:
 # RNN DATA
 
 
+def is_uniform_length(dataset):
+    uniform_length = True
+    seq_len = len(dataset[0])
+    for i in range(1, len(dataset)):
+        if seq_len != len(dataset[i]):
+            uniform_length = False
+            break
+    return uniform_length
+
+
+def get_max_sequence_length(dataset):
+    return max(map(len, dataset))
+
+
 def load_rnn_data_from_file(file_name, n_targets=1):
     dataset = []
     with open(file_name, 'r') as f:
@@ -178,14 +192,7 @@ def load_rnn_data_from_file(file_name, n_targets=1):
             example = map(int, line.split())
             dataset.append(example)
 
-        uniform_length = True
-        seq_len = len(dataset[0])
-        for i in range(1, len(dataset)):
-            if seq_len != len(dataset[i]):
-                uniform_length = False
-                break
-
-        if uniform_length:
+        if is_uniform_length(dataset):
             data = torch.tensor(dataset)
             seq = data[:, :data.size(1)-n_targets]
             target = data[:, data.size(1)-n_targets:]
