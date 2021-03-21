@@ -26,6 +26,7 @@ parser.add_argument('--hidden_size', default=50, type=int, help='dimensionality 
 parser.add_argument('--n_targets', default=1, type=int, help='number of targets for each example, if > 1 the targets will be treated as a sequence')
 
 # Data parameters
+parser.add_argument('--data_file', default='', type=str)
 parser.add_argument('--n_train', default=0, type=int, help='number of training instances, 0 to use all available')
 parser.add_argument('--n_val', default=50, type=int, help='number of validation instances (will not be used if datafile.val exists)')
 
@@ -38,7 +39,6 @@ parser.add_argument('--max_iters', default=1000, type=int, help='maximum number 
 parser.add_argument('--n_threads', default=1, type=int, help='set the number of threads to use with this process')
 
 # Checkpoint and logging parameters
-parser.add_argument('--data_file', default='', type=str)
 parser.add_argument('--output_dir', default='.', type=str, help='output directory')
 parser.add_argument('--print_every', default=10, type=int, help='frequency of training information logs')
 parser.add_argument('--save_every', default=100, type=int, help='frequency of checkpoints')
@@ -48,6 +48,10 @@ parser.add_argument('--seed', default=8, type=int, help='random seed')
 # autopep8: on
 
 args = parser.parse_args()
+
+# Set up checkpoint directory
+Path(args.output_dir).mkdir(parents=True, exist_ok=True)
+print('Checkpoints will be saved to ', args.output_dir)
 
 
 torch.set_num_threads(args.n_threads)
@@ -59,10 +63,6 @@ if args.optimizer is not 'adam':
     raise argparse.ArgumentError('Unsupported optimizer')
 optimizer = torch.optim.Adam(rnn.parameters(), lr=args.learning_rate)
 
-# Set up checkpoint directory
-Path(args.output_dir).mkdir(parents=True, exist_ok=True)
-print('Checkpoints will be saved to ', args.output_dir)
-# torch.save(args, args.output_dir + '/params')
 
 # PREPARE DATA
 
