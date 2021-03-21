@@ -4,7 +4,7 @@ Creates a PyTorch DataLoader with batched sequences.
 """
 
 import torch
-from torch.utils.data import DataLoader
+from torch.utils.data import Dataset, DataLoader
 from torch_geometric.data import Data
 
 
@@ -29,7 +29,26 @@ def load_rnn_data_from_file(file_name, n_targets=1):
     return sequences, targets
 
 
-# TODO translate
+class bAbIRNNDataset(Dataset):
+    """ Load bAbI dataset for RNN. """
+
+    # TODO arguments based on path, task_id, whether training dataset
+    def __init__(self, data_file, n_targets=1):
+        """
+        Args:
+            data_file (string): Path to the file with the task data.
+            root_dir (string): Dataset directory.
+        """
+        self.sequences, self.targets = load_rnn_data_from_file(
+            data_file, n_targets)
+
+    def __len__(self):
+        return len(self.sequences)
+
+    def __getitem__(self, idx):
+        return {"sequence": self.sequences[idx, :], "target": self.targets[idx, :]}
+
+
 def split_set_tensor(x_train, t_train, n_train, n_val, some_boolean):
     pass
 
