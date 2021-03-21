@@ -6,7 +6,7 @@ https://github.com/yujiali/ggnn/blob/master/babi/babi_rnn_train.lua
 """
 
 
-from data import load_rnn_data_from_file, find_max_in_list_of_tensors, split_set_tensor, split_set_input_output
+from baselines_data import load_rnn_data_from_file, find_max_in_list_of_tensors, split_set_tensor, split_set_input_output
 from baselines.baseline_rnn import BaselineRNN
 from torch import nn
 import torch
