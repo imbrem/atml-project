@@ -6,9 +6,10 @@ https://github.com/yujiali/ggnn/blob/master/babi/babi_rnn_train.lua
 """
 
 
-from baselines_data import load_rnn_data_from_file, find_max_in_list_of_tensors, split_set_tensor, split_set_input_output
+from baselines_data import bAbIRNNDataset
 from baselines.baseline_rnn import BaselineRNN
 from torch import nn
+from torch.utils.data import DataLoader
 import torch
 import argparse
 from pathlib import Path
@@ -54,106 +55,63 @@ Path(args.output_dir).mkdir(parents=True, exist_ok=True)
 print('Checkpoints will be saved to ', args.output_dir)
 
 
+train_dataset = bAbIRNNDataset(args.data_file, args.n_targets)
+train_dataloader = DataLoader(train_dataset, batch_size=4, shuffle=True)
+
+# TODO validation dataset
+val_dataset = None
+val_dataloader = None
+
+test_dataset = None
+test_dataloader = None
+
+n_train = len(train_dataset)
+
+print('Training set:\t{} sequences'.format(len(train_dataset)))
+print('Validation set:\t{} sequences'.format(len(val_dataset)))
+
+
+if args.n_targets > 1:
+    args.n_targets += 1  # add 1 to include the end symbol
+
 torch.set_num_threads(args.n_threads)
 
-# TODO initialise RNN model here
-rnn = None
-
-if args.optimizer is not 'adam':
-    raise argparse.ArgumentError('Unsupported optimizer')
-optimizer = torch.optim.Adam(rnn.parameters(), lr=args.learning_rate)
+if args.n_epochs > 0:
+    args.max_iters = args.n_epochs * math.ceil(n_train * 1. / args.batch_size)
 
 
 # PREPARE DATA
 
 torch.manual_seed(args.seed)
 
-seq_train, target_train = load_rnn_data_from_file(
-    args.data_file, args.n_targets)
-
-vocab_size = seq_train.max()
-embedding_size = args.embedding_size
-hidden_size = args.hidden_size
-output_size = target_train.max()
-
-
-# split training data into train & val
-# checking if validation data file exists
-if Path(args.data_file + '.val').is_file():
-    print('Validation file exists\nSplitting part of training data for validation.')
-    # TODO split_set_tensor
-    seq_train, target_train, seq_val, target_val = split_set_tensor(
-        seq_train, target_train, args.n_train, args.n_val, True)
-else:
-    # TODO isn't this behaving in the opposite way
-    # if n_train is 0, automatically use all the training data available
-    if args.n_train:
-        seq_train, target_train = split_set_tensor(
-            seq_train, target_train, args.n_train, 0, True)
-
-    print('Loading validation data from {}.val'.format(args.data_file))
-    seq_val, target_val = load_rnn_data_from_file(
-        args.data_file + '.val', args.n_targets)
-
-
-if args.n_targets > 1:
-    args.n_targets += 1  # add 1 to include the end symbol
-
-print()
-
-# TODO batch loading
-
-
-def batch_loader(*args):
-    pass
-
-
-train_data_loader = batch_loader(
-    seq_train, target_train, args.batch_size, True)
-print('Training set:\t{} sequences'.format(seq_train.size()))
-print('Validation set:\t{} sequences'.format(seq_val.size()))
-n_train = seq_train.size(0)
-
-# PREPARE MODEL
-
 # TODO separate printing
 
 print('Number of output classes: {}\n'.format(output_size))
-
-if args.n_epochs > 0:
-    args.max_iters = args.n_epochs * math.ceil(n_train * 1. / args.batch_size)
 print('Total number of weight updates: {}\n'.format(args.max_iters))
 
 # TODO fix model initialisation
 if args.model == 'rnn':
-    model = rnn.RNN(vocab_size, embedding_size, hidden_size, output_size)
-# elif args.model == 'lstm':
-#     model =rnn.LSTM(vocab_size, embedding_size, hidden_size, output_size)
+    model = None
+elif args.model == 'lstm':
+    model = None
 else:
     argparse.ArgumentError('Unknown model type: {}'.format(args.model))
+
+if args.optimizer is not 'adam':
+    raise argparse.ArgumentError('Unsupported optimizer')
+optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
 
 # TODO get rid of criterion
 criterion = nn.CrossEntropyCriterion()
 
-model.print_model()
-print('Loss: {}\n'.format(criterion))
-
-# TODO get parameters
-# TODO get rid of them
-params, grad_params = model.get_parameters()
-
-print('Total number of parameters: {}\n'.format(params.nelement()))
+print('Total number of parameters: {}\n'.format(len(model.parameters())))
 
 # EVALUATION CODE
 
 
-def forward_evaluation(x):
-    # TODO what does this do?
-    if x != params:
-        params.copy(x)
+def train_1(seq, target):
     optimizer.zero_grad()
 
-    x_batch, t_batch = train_data_loader.next()
     if args.n_targets > 1:
         t_batch = torch.reshape(t_batch, t_batch.size(
             0) * args.n_targets, t_batch.size(1) / args.n_targets)
@@ -165,7 +123,7 @@ def forward_evaluation(x):
     # grad_params: clamp(-5, 5)
     optimizer.step()
 
-    return loss, grad_params
+    return loss
 
 
 def eval_loss(model, x, t):
