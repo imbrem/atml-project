@@ -250,28 +250,29 @@ def eval_loss(model, x, t):
             total_loss += criterion(model((x[i], tt), tt))
         return total_loss / len(x)
 
-# function eval_err(model, x, t)
-#     if uniform_length then
-#         local pred=model: predict(x, opt.ntargets)
-#         pred=pred: typeAs(t)
-#         if opt.ntargets > 1 then
-#             return pred: ne(t): type('torch.DoubleTensor'): sum(2): gt(0): type('torch.DoubleTensor'): mean()
-#         else
-#             return pred: ne(t): type('torch.DoubleTensor'): mean()
-#         end
-#     else
-#         local err=0
-#         for i=1,  # x do
-#             local pred=model: predict(x[i], opt.ntargets)
-#             if opt.ntargets > 1 then
-#                 err=err + pred: typeAs(t[i]): ne(t[i]): type('torch.DoubleTensor'): sum(): gt(0): sum()
-#             else
-#                 err=err + pred: typeAs(t[i]): ne(t[i]): sum()
-#             end
-#         end
-#         return err /  # x
-#     end
-# end
+
+def eval_error(model, x, t):
+    if uniform_length:
+        pred = model.predict(x, args.n_targets)
+        # TODO why is this type conversion...
+        # pred = pred.typeAs(t)
+        if args.n_targets > 1:
+            # TODO wth
+            return pred.ne(t).type('torch.DoubleTensor').sum(1).gt(0).type('torch.DoubleTensor').mean()
+        else:
+            # TODO fix
+            return pred.ne(t).type('torch.DoubleTensor').mean()
+    else:
+        total_error = 0
+        for i in range(len(x)):
+            pred = model.predict(x[i], args.n_targets)
+            if args.n_targets > 1:
+                # TODO fix
+                total_error += pred.typeAs(t[i]).ne(t[i]
+                                                    ).type('torch.DoubleTensor').sum().gt(0).sum()
+            else:
+                total_error += pred.typeAs(t[i]).ne(t[i]).sum()
+        return total_error / len(x)
 
 # train_records={}
 # train_error_records={}
