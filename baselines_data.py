@@ -8,17 +8,6 @@ from torch.utils.data import DataLoader
 from torch_geometric.data import Data
 
 
-def is_uniform_length(dataset):
-    """ Checks whether all sequences in the dataset are of equal length. """
-    uniform_length = True
-    seq_len = len(dataset[0])
-    for i in range(1, len(dataset)):
-        if seq_len != len(dataset[i]):
-            uniform_length = False
-            break
-    return uniform_length
-
-
 def load_rnn_data_from_file(file_name, n_targets=1):
     """ Returns sequences and targets in a given file as tensors. """
     sequence_list = []
