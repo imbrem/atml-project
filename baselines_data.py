@@ -48,12 +48,23 @@ class bAbIRNNDataset(Dataset):
     def __getitem__(self, idx):
         return {"sequence": self.sequences[idx, :], "target": self.targets[idx, :]}
 
+# TODO one-hot encoding
 
-def split_set_tensor(x_train, t_train, n_train, n_val, some_boolean):
-    pass
+# TODO training and validation sets
+# split training data into train & val
+# checking if validation data file exists
+# if Path(args.data_file + '.val').is_file():
+#     print('Validation file exists\nSplitting part of training data for validation.')
+#     # TODO split_set_tensor
+#     seq_train, target_train, seq_val, target_val = split_set_tensor(
+#         seq_train, target_train, args.n_train, args.n_val, True)
+# else:
+#     # TODO isn't this behaving in the opposite way
+#     # if n_train is 0, automatically use all the training data available
+#     if args.n_train:
+#         seq_train, target_train = split_set_tensor(
+#             seq_train, target_train, args.n_train, 0, True)
 
-# TODO translate
-
-
-def split_set_input_output(x_train, t_train, n_train, n_val, some_boolean):
-    pass
+#     print('Loading validation data from {}.val'.format(args.data_file))
+#     seq_val, target_val = load_rnn_data_from_file(
+#         args.data_file + '.val', args.n_targets)
