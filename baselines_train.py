@@ -196,6 +196,8 @@ params, grad_params = model.get_parameters()
 
 print('Total number of parameters: {}\n'.format(params.nelement()))
 
+# EVALUATION CODE
+
 
 def forward_evaluation(x):
     # TODO what does this do?
@@ -274,63 +276,68 @@ def eval_error(model, x, t):
                 total_error += pred.typeAs(t[i]).ne(t[i]).sum()
         return total_error / len(x)
 
-# train_records={}
-# train_error_records={}
-# val_records={}
 
-# function train()
-#     local loss=0
-#     local batch_loss=0
-#     local iter=0
+train_records = []
+train_error_records = []
+val_records = []
 
-#     local best_loss=math.huge
-#     local best_params=params: clone()
+# TRAINING
 
-#     local plot_iter=0
 
-#     while iter < opt.maxiters do
-#         local timer=torch.Timer()
-#         batch_loss=0
-#         for iter_before_print=1, opt.printafter do
-#             _, loss=optfunc(feval, params, optim_config, optim_state)
-#             loss=loss[1]
-#             batch_loss=batch_loss + loss
-#         end
-#         iter=iter + opt.printafter
-#         batch_loss=batch_loss / opt.printafter
+def train():
+    total_loss, batch_loss, iter = 0, 0, 0
 
-#         plot_iter=plot_iter + 1
+    best_loss = math.inf
+    best_params = params.clone()
 
-#         val_err=eval_err(net, x_val, t_val)
-#         io.write(string.format('iter %d, grad_scale=%.8f, train_loss=%.6f, val_error_rate=%.6f, time=%.2f',
-#                 iter, torch.abs(grad_params): max(), batch_loss, val_err, timer: time().real))
+    plot_iter = 0
 
-#         table.insert(train_records, {iter, batch_loss})
-#         table.insert(val_records, {iter, val_err})
+    while iter < args.max_iters:
+        # TODO timer
+        timer = torch.Timer()
+        batch_loss = 0
+        for _ in range(args.print_every):
+            # TODO compute loss
+            # _, loss = optfunc(feval, params, optim_config, optim_state)
+            loss = None
+            batch_loss = batch_loss + loss
+        iter += args.print_every
+        batch_loss /= args.print_every
 
-#         if val_err < best_loss then
-#             best_loss=val_err
-#             best_params: copy(params)
-#             rnn.save_rnn_model(opt.outputdir .. '/model_best', best_params, opt.model, vocab_size, embed_size, hid_size, output_size)
-#             print(color.green(' *'))
-#         else
-#             print('')
-#         end
+        plot_iter += 1
 
-#         if iter % opt.saveafter == 0 then
-#             rnn.save_rnn_model(opt.outputdir .. '/model_' .. iter, params, opt.model, vocab_size, embed_size, hid_size, output_size)
-#         end
+        val_err = eval_error(model, x_val, t_val)
+        print('iter {%d}, grad_scale={%.8f}, train_loss={%.6f}, val_error_rate={%.6f}, time={%.2f}'.format(
+            iter, torch.abs(grad_params).max(), batch_loss, val_err, timer.time().real))
 
-#         if plot_iter % opt.plotafter == 0 then
-#             generate_plots()
-#             collectgarbage()
-#         end
-#     end
+        train_records.append([iter, batch_loss])
+        val_records.append([iter, val_err])
 
-#     generate_plots()
+        # TODO off-the-shelf early stopping
+        if val_err < best_loss:
+            best_loss = val_err
+            # TODO save best parameters
+            best_params = params.clone()
+            # TODO torch.save() model
+            # model.save_rnn_model(opt.outputdir .. '/model_best', best_params, opt.model, vocab_size, embed_size, hid_size, output_size)
+            # print(color.green(' *'))
+        else:
+            print('')
 
-#     rnn.save_rnn_model(opt.outputdir .. '/model_end', params, opt.model, vocab_size, embed_size, hid_size, output_size)
-# end
+        if iter % args.save_every == 0:
+            # TODO torch.save() the model
+            # rnn.save_rnn_model(opt.outputdir .. '/model_' .. iter, params, opt.model, vocab_size, embed_size, hid_size, output_size)
+            pass
+
+        if plot_iter % args.plot_every == 0:
+            # TODO fill
+            pass
+            # generate_plots()
+            # collectgarbage()
+
+    # generate_plots()
+    # TODO torch.save() the final model
+    # rnn.save_rnn_model(opt.outputdir .. '/model_end', params, opt.model, vocab_size, embed_size, hid_size, output_size)
 
 # function plot_learning_curve(records, fname, ylabel, xlabel)
 #     xlabel=xlabel or '#iterations'
@@ -363,6 +370,7 @@ def eval_error(model, x, t):
 #     collectgarbage()
 # end
 
+# TODO if __name__ == "__main__":
 # train()
 
 # if __name__ == "__main__":
