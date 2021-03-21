@@ -233,24 +233,22 @@ def forward_evaluation(x):
 
     return loss, grad_params
 
-# function eval_loss(model, x, t)
-#     if uniform_length then
-#         if opt.ntargets > 1 then
-#             t=torch.reshape(t, t: size(1) * opt.ntargets, t: size(2) / opt.ntargets)
-#         end
-#         return c: forward(model: forward(x, opt.ntargets), t)
-#     else
-#         local loss=0
-#         for i=1,  # x do
-#             local tt=t[i]
-#             if opt.ntargets > 1 then
-#                 tt=torch.reshape(tt, tt: size(1) * opt.ntargets, tt: size(2) / opt.ntargets)
-#             end
-#             loss=loss + c: forward(model: forward(x[i], tt), tt)
-#         end
-#         return loss /  # x
-#     end
-# end
+
+def eval_loss(model, x, t):
+    if uniform_length:
+        if args.n_targets > 1:
+            t = torch.reshape(t, t.size(0) * args.n_targets,
+                              t.size(1) / args.n_targets)
+        return criterion(model(x, args.n_targets), t)
+    else:
+        total_loss = 0
+        for i in range(len(x)):
+            tt = t[i]
+            if args.n_targets > 1:
+                tt = torch.reshape(tt, tt.size(
+                    0) * args.n_targets, tt.size(1) / args.n_targets)
+            total_loss += criterion(model((x[i], tt), tt))
+        return total_loss / len(x)
 
 # function eval_err(model, x, t)
 #     if uniform_length then
