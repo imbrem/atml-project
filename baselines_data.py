@@ -55,7 +55,7 @@ class BabiRNNDataset(Dataset):
         return len(self.sequences)
 
     def __getitem__(self, idx):
-        return {'sequence': self.sequences[idx, :], 'target': self.targets[idx, :]}
+        return {'x': self.sequences[idx, :], 'y': self.targets[idx, :]}
 
 # TODO one-hot encoding
 
