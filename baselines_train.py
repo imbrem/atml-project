@@ -85,7 +85,7 @@ print('Total number of weight updates: {}\n'.format(args.max_iters))
 
 # TODO fix model initialisation
 if args.model == 'rnn':
-    model = None
+    model = BaselineRNN(input_size=args.input_size, hidden_size=args.hidden_size)
 elif args.model == 'lstm':
     model = None
 else:
@@ -95,117 +95,55 @@ if args.optimizer is not 'adam':
     raise parser.error('Unsupported optimizer')
 optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
 
-# TODO get rid of criterion
-criterion = nn.CrossEntropyCriterion()
+criterion = nn.CrossEntropyLoss()
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
-print('Total number of parameters: {}\n'.format(len(model.parameters())))
+print('Total number of parameters: {}\n'.format(model.count_parameters()))
 
-# EVALUATION CODE
-
-
-def train_1(seq, target):
-    optimizer.zero_grad()
-
-    if args.n_targets > 1:
-        t_batch = torch.reshape(t_batch, t_batch.size(
-            0) * args.n_targets, t_batch.size(1) / args.n_targets)
-    y = model(x_batch, args.n_targets)
-    loss = criterion(y, t_batch)
-    loss.backward()
-
-    # TODO clamping
-    # grad_params: clamp(-5, 5)
-    optimizer.step()
-
-    return loss
+# TODO logging, validation loss, early stopping
+# print_every, save_every, plot_every
 
 
-def eval_loss(model, x, t):
-    if args.n_targets > 1:
-        t = torch.reshape(t, t.size(0) * args.n_targets,
-                          t.size(1) / args.n_targets)
-    return criterion(model(x, args.n_targets), t)
+def train(train_loader):
+    """ Training procedure for a single epoch. """
+    model.train()
+
+    total_loss = 0
+    for data in train_loader:
+        data = data.to(device)
+        optimizer.zero_grad()
+
+        # if args.n_targets > 1:
+        #         t_batch = torch.reshape(t_batch, t_batch.size(
+        #             0) * args.n_targets, t_batch.size(1) / args.n_targets)
+
+        out = model(data)
+
+        # TODO what if sequence output
+        loss = criterion(out, data.y)
+        loss.backward()
+
+        total_loss += loss.item()
+
+        # Gradient clipping as per original implementation.
+        torch.nn.utils.clip_grad_value_(model.parameters(), 5)
+        optimizer.step()
+
+    return total_loss / len(train_loader)
 
 
-def eval_error(model, x, t):
-    pred = model.predict(x, args.n_targets)
-    # TODO why is this type conversion...
-    # pred = pred.typeAs(t)
-    if args.n_targets > 1:
-        # TODO wth
-        return pred.ne(t).type('torch.DoubleTensor').sum(1).gt(0).type('torch.DoubleTensor').mean()
-    else:
-        # TODO fix
-        return pred.ne(t).type('torch.DoubleTensor').mean()
+# TODO error evaluation
+# def eval_error(model, x, t):
+#     pred = model.predict(x, args.n_targets)
+#     # pred = pred.typeAs(t)
+#     if args.n_targets > 1:
+#         # TODO wth
+#         return pred.ne(t).type('torch.DoubleTensor').sum(1).gt(0).type('torch.DoubleTensor').mean()
+#     else:
+#         # TODO fix
+#         return pred.ne(t).type('torch.DoubleTensor').mean()
 
-
-train_records = []
-train_error_records = []
-val_records = []
-
-# TRAINING
-
-
-def train():
-    total_loss, batch_loss, iter = 0, 0, 0
-
-    best_loss = math.inf
-    best_params = params.clone()
-
-    plot_iter = 0
-
-    while iter < args.max_iters:
-        # TODO timer
-        timer = torch.Timer()
-        batch_loss = 0
-        for _ in range(args.print_every):
-            # TODO compute loss
-            # _, loss = optfunc(feval, params, optim_config, optim_state)
-            loss = None
-            batch_loss = batch_loss + loss
-        iter += args.print_every
-        batch_loss /= args.print_every
-
-        plot_iter += 1
-
-        val_err = eval_error(model, seq_val, target_val)
-        print('iter {%d}, grad_scale={%.8f}, train_loss={%.6f}, val_error_rate={%.6f}, time={%.2f}'.format(
-            iter, torch.abs(grad_params).max(), batch_loss, val_err, timer.time().real))
-
-        train_records.append([iter, batch_loss])
-        val_records.append([iter, val_err])
-
-        # TODO off-the-shelf early stopping
-        if val_err < best_loss:
-            best_loss = val_err
-            # TODO save best parameters
-            best_params = params.clone()
-            # TODO torch.save() model
-            # model.save_rnn_model(opt.outputdir .. '/model_best', best_params, opt.model, vocab_size, embed_size, hid_size, output_size)
-            # print(color.green(' *'))
-        else:
-            print('')
-
-        if iter % args.save_every == 0:
-            # TODO torch.save() the model
-            # rnn.save_rnn_model(opt.outputdir .. '/model_' .. iter, params, opt.model, vocab_size, embed_size, hid_size, output_size)
-            pass
-
-        if plot_iter % args.plot_every == 0:
-            # TODO fill
-            pass
-            # generate_plots()
-            # collectgarbage()
-
-    # generate_plots()
-    # TODO torch.save() the final model
-    # rnn.save_rnn_model(opt.outputdir .. '/model_end', params, opt.model, vocab_size, embed_size, hid_size, output_size)
-
-# TODO plotting
-
-# TODO if __name__ == "__main__":
-# train()
-
+# TODO main
 # if __name__ == "__main__":
 #     from torch_geometric.data import DataLoader
 
@@ -214,15 +152,3 @@ def train():
 #     loader = DataLoader(train_dataset, batch_size=2)
 #     batch0 = next(iter(loader))
 #     print(batch0.x, batch0.edge_index, batch0.batch, batch0.edge_attr, batch0.y)
-
-
-# def train(x, y):
-#     optimizer.zero_grad()
-
-#     for i in range(line_tensor.size()[0]):
-#         output, hidden = rnn(line_tensor[i], hidden)
-
-#     loss = criterion(output, category_tensor)
-#     loss.backward()
-
-#     optimizer.step()

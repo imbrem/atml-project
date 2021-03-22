@@ -32,16 +32,18 @@ class BaselineRNN(nn.Module):
                                 hidden_size=hidden_size,
                                 batch_first=True)
 
-    def forward(self, input, n_outputs=1):
+    def forward(self, data, n_outputs=1):
         """
         Args:
-            input: (batch, seq_len, input_size)
+            data: (batch, seq_len, input_size) the DataLoader batch.
+            n_outputs (int): Number of target outputs.
         Returns:
             output: (batch, n_outputs, hidden_size)
             hidden: (batch, num_layers, hidden_size)
         """
         # initial hidden representation defaults to 0
-        output, hidden = self.rnn_layer(input)
+        x, batch = data.x, data.batch
+        output, hidden = self.rnn_layer(x)
         return output[:, -n_outputs:, :], hidden
 
     def reset_parameters(self):
