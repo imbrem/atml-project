@@ -48,3 +48,6 @@ class BaselineRNN(nn.Module):
 
     def reset_parameters(self):
         self.rnn_layer.reset_parameters()
+
+    def count_parameters(self):
+        return sum(p.numel() for p in self.parameters() if p.requires_grad)
