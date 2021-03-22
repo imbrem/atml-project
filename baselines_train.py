@@ -6,7 +6,7 @@ https://github.com/yujiali/ggnn/blob/master/babi/babi_rnn_train.lua
 """
 
 
-from baselines_data import bAbIRNNDataset
+from baselines_data import BabiRNNDataset
 from baselines.baseline_rnn import BaselineRNN
 from torch import nn
 from torch.utils.data import DataLoader
@@ -27,14 +27,15 @@ parser.add_argument('--hidden_size', default=50, type=int, help='dimensionality 
 parser.add_argument('--n_targets', default=1, type=int, help='number of targets for each example, if > 1 the targets will be treated as a sequence')
 
 # Data parameters
-parser.add_argument('--data_file', default='', type=str)
+parser.add_argument('--root_dir', default='', type=str)
+parser.add_argument('--task_id', default=4, type=int)
 parser.add_argument('--n_train', default=0, type=int, help='number of training instances, 0 to use all available')
 parser.add_argument('--n_val', default=50, type=int, help='number of validation instances (will not be used if datafile.val exists)')
 
 # Training parameters
-parser.add_argument('--learning_rate', default=1e-3,type=float, help='learning rate')
+parser.add_argument('--learning_rate', default=1e-3, type=float, help='learning rate')
 parser.add_argument('--optimizer', default='adam', type=str, help='type of optimization algorithm to use')
-parser.add_argument('--batch_size', default=10,type=int, help='minibatch size')
+parser.add_argument('--batch_size', default=10, type=int, help='minibatch size')
 parser.add_argument('--n_epochs', default=0, type=int, help='number of epochs to train, (overrides maxiters)')
 parser.add_argument('--max_iters', default=1000, type=int, help='maximum number of weight updates')
 parser.add_argument('--n_threads', default=1, type=int, help='set the number of threads to use with this process')
@@ -55,21 +56,14 @@ Path(args.output_dir).mkdir(parents=True, exist_ok=True)
 print('Checkpoints will be saved to ', args.output_dir)
 
 
-train_dataset = bAbIRNNDataset(args.data_file, args.n_targets)
+train_dataset = BabiRNNDataset(args.root_dir, args.task_id, args.n_targets)
 train_dataloader = DataLoader(train_dataset, batch_size=4, shuffle=True)
 
-# TODO validation dataset
-val_dataset = None
-val_dataloader = None
+val_dataset = BabiRNNDataset(args.root_dir, args.task_id, args.n_targets, validation=True)
+val_dataloader = DataLoader(val_dataset, batch_size=4, shuffle=True)
 
-test_dataset = None
-test_dataloader = None
-
-n_train = len(train_dataset)
-
-print('Training set:\t{} sequences'.format(len(train_dataset)))
-print('Validation set:\t{} sequences'.format(len(val_dataset)))
-
+test_dataset = BabiRNNDataset(args.root_dir, args.task_id, args.n_targets, test=True)
+test_dataloader = DataLoader(test_dataset, shuffle=False)
 
 if args.n_targets > 1:
     args.n_targets += 1  # add 1 to include the end symbol
@@ -77,7 +71,7 @@ if args.n_targets > 1:
 torch.set_num_threads(args.n_threads)
 
 if args.n_epochs > 0:
-    args.max_iters = args.n_epochs * math.ceil(n_train * 1. / args.batch_size)
+    args.max_iters = args.n_epochs * math.ceil(args.n_train * 1. / args.batch_size)
 
 
 # PREPARE DATA

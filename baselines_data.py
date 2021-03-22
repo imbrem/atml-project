@@ -5,7 +5,7 @@ Creates a PyTorch DataLoader with batched sequences.
 
 import torch
 from torch.utils.data import Dataset, DataLoader
-from torch_geometric.data import Data
+from pathlib import Path
 
 
 def load_rnn_data_from_file(file_name, n_targets=1):
@@ -29,24 +29,33 @@ def load_rnn_data_from_file(file_name, n_targets=1):
     return sequences, targets
 
 
-class bAbIRNNDataset(Dataset):
+class BabiRNNDataset(Dataset):
     """ Load bAbI dataset for RNN. """
 
-    # TODO arguments based on path, task_id, whether training dataset
-    def __init__(self, data_file, n_targets=1):
+    def __init__(self, root_dir, task_id, n_targets=1, validation=False, test=False):
         """
         Args:
-            data_file (string): Path to the file with the task data.
-            root_dir (string): Dataset directory.
+            root_dir (string): Path to the fold root directory.
+            task_id (int): The ID of the bAbI task.
+            n_targets (int): The length of output sequences.
+            validation: Whether to load the validation data.
+            test: Whether to load the test data.
         """
-        self.sequences, self.targets = load_rnn_data_from_file(
-            data_file, n_targets)
+        data_file = Path(root_dir)
+
+        data_file = data_file / ('test' if test else 'train')
+        data_file = data_file / '{}_rnn.txt'.format(task_id)
+
+        if validation and not test:
+            data_file = data_file / '.val'
+
+        self.sequences, self.targets = load_rnn_data_from_file(data_file, n_targets)
 
     def __len__(self):
         return len(self.sequences)
 
     def __getitem__(self, idx):
-        return {"sequence": self.sequences[idx, :], "target": self.targets[idx, :]}
+        return {'sequence': self.sequences[idx, :], 'target': self.targets[idx, :]}
 
 # TODO one-hot encoding
 
