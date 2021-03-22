@@ -17,9 +17,9 @@ import math
 
 # ARGUMENT PARSING
 
+# autopep8: off
 parser = argparse.ArgumentParser()
 
-# autopep8: off
 # Model parameters
 parser.add_argument('--model', default='rnn', type=str, help='rnn or lstm')
 parser.add_argument('--embedding_size', default=50, type=int, help='dimensionality of the embeddings')
@@ -46,9 +46,9 @@ parser.add_argument('--save_every', default=100, type=int, help='frequency of ch
 parser.add_argument('--plot_every', default=10, type=int, help='frequency of training curve updates')
 
 parser.add_argument('--seed', default=8, type=int, help='random seed')
-# autopep8: on
 
 args = parser.parse_args()
+# autopep8: on
 
 # Set up checkpoint directory
 Path(args.output_dir).mkdir(parents=True, exist_ok=True)
@@ -95,10 +95,10 @@ if args.model == 'rnn':
 elif args.model == 'lstm':
     model = None
 else:
-    argparse.ArgumentError('Unknown model type: {}'.format(args.model))
+    parser.error('Unknown model type: {}'.format(args.model))
 
 if args.optimizer is not 'adam':
-    raise argparse.ArgumentError('Unsupported optimizer')
+    raise parser.error('Unsupported optimizer')
 optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
 
 # TODO get rid of criterion
