@@ -1,4 +1,5 @@
-""" Prepares baseline RNN/LSTM data. 
+"""
+Prepares baseline RNN/LSTM data.
 
 Creates a PyTorch DataLoader with batched sequences.
 """
@@ -8,72 +9,115 @@ from torch.utils.data import Dataset, DataLoader
 from pathlib import Path
 
 
-def load_rnn_data_from_file(file_name, n_targets=1):
-    """ Returns sequences and targets in a given file as tensors. """
+def get_data_filename(root_dir, fold_id, split, task_id):
+    filename = Path(root_dir)
+    filename = filename / 'processed_{}'.format(fold_id)
+    filename = filename / 'rnn'
+    filename = filename / ('test' if split is 'test' else 'train')
+    filename = filename / '{}_rnn.txt'.format(task_id)
+
+    if split is 'validation':
+        filename = filename / '.val'
+
+    return filename
+
+
+def get_sequence_and_target_lists_from_file(filename, n_targets=1):
+    """ Returns sequences and targets in a given file as lists of token IDs. """
     sequence_list = []
     target_list = []
-    with open(file_name, 'r') as f:
+    with open(filename, 'r') as f:
         for line in f:
             example = map(int, line.split())
             sequence_list.append(torch.tensor(example[:-n_targets]))
             target_list.append(example[-n_targets:])
 
-    sequences = torch.nn.utils.rnn.pad_sequence(sequence_list)
-    targets = torch.tensor(target_list)
+    return sequence_list, target_list
 
+
+def get_max_token_id(sequence_list, n_targets):
+    return max(map(max, sequence_list)) + (1 if n_targets > 1 else 0)
+
+
+def one_hot_token_list(token_list, max_token_id):
+    one_hot_list = []
+    for seq in token_list:
+        y = (torch.tensor(seq) - 1).view(-1, 1)
+        y_onehot = torch.FloatTensor(y.size(0), max_token_id).zero_()
+        y_onehot.scatter_(1, y, 1)
+        one_hot_list.append(y_onehot)
+
+    return one_hot_list
+
+
+def transform_sequence_list(sequence_list, max_token_id):
+    one_hot_sequence_list = one_hot_token_list(sequence_list, max_token_id)
+    sequences = torch.nn.utils.rnn.pad_sequence(one_hot_sequence_list,
+                                                batch_first=True)
+    return sequences
+
+
+def transform_target_list(target_list, n_targets, max_token_id):
     # Append special end of sequence symbol when the target is a sequence.
-    if n_targets != 1:
-        eos_id = (targets.max() + 1) * torch.ones(targets.size(0), 1)
-        targets = torch.cat((targets, eos_id), dim=1)
+    one_hot_target_list = one_hot_token_list(target_list, max_token_id)
+    targets = torch.stack(
+        one_hot_target_list)  # [n_seq x n_targets x max_token_id]
+    if n_targets > 1:
+        eos_tensor = torch.zeros(targets.size(0), 1, targets.size(2))
+        eos_tensor[:, :, -1] = 1
+        targets = torch.cat((targets, eos_tensor),
+                            dim=1)  # [n_seq x (n_targets + 1) x max_token_id]
+
+    return targets
+
+
+def prepare_sequences_and_targets(token_lists, n_targets):
+    """ Transforms token ID lists into tensors.
+
+    Adds zero-vector padding to the end of sequence if the sequences have
+    different lengths.
+    Transforms tokens into one-hot encoded vectors.
+    Appends an end-of-sequence token to the target if n_targets > 1.
+    """
+    sequence_list, target_list = token_lists
+    max_token_id = get_max_token_id(sequence_list, n_targets)
+    sequences = transform_sequence_list(sequence_list, max_token_id)
+    targets = transform_target_list(target_list, n_targets, max_token_id)
 
     return sequences, targets
 
 
+# TODO use custom number of training/validation examples
 class BabiRNNDataset(Dataset):
-    """ Load bAbI dataset for RNN. """
+    """ Loads bAbI dataset for RNN.
 
-    def __init__(self, root_dir, task_id, n_targets=1, validation=False, test=False):
+    Obtains the file (training, validation, or test) for the corresponding
+    fold from the root directory containing the entire dataset (will likely
+    be babi_data/ in this case).
+
+    Adds zero-padding at the end of the sequence if sequences in the dataset
+    have different lengths. Adds a special end-of-sequence token for the
+    targets that consist of multiple outputs. All tokens are one-hot encoded.
+    """
+
+    def __init__(self, root_dir, fold_id, task_id, n_targets=1,
+                 split='train'):
         """
         Args:
             root_dir (string): Path to the fold root directory.
+            fold_id (int): The number of the fold.
             task_id (int): The ID of the bAbI task.
             n_targets (int): The length of output sequences.
-            validation: Whether to load the validation data.
-            test: Whether to load the test data.
+            split (str): One of 'train', 'validation', 'test'
         """
-        data_file = Path(root_dir)
 
-        data_file = data_file / ('test' if test else 'train')
-        data_file = data_file / '{}_rnn.txt'.format(task_id)
-
-        if validation and not test:
-            data_file = data_file / '.val'
-
-        self.sequences, self.targets = load_rnn_data_from_file(data_file, n_targets)
+        filename = get_data_filename(root_dir, fold_id, task_id, split)
+        data = get_sequence_and_target_lists_from_file(filename, n_targets)
+        self.sequences, self.targets = prepare_sequences_and_targets(data,
+                                                                     n_targets)
 
     def __len__(self):
         return len(self.sequences)
 
     def __getitem__(self, idx):
-        return {'x': self.sequences[idx, :], 'y': self.targets[idx, :]}
-
-# TODO one-hot encoding
-
-# TODO training and validation sets
-# split training data into train & val
-# checking if validation data file exists
-# if Path(args.data_file + '.val').is_file():
-#     print('Validation file exists\nSplitting part of training data for validation.')
-#     # TODO split_set_tensor
-#     seq_train, target_train, seq_val, target_val = split_set_tensor(
-#         seq_train, target_train, args.n_train, args.n_val, True)
-# else:
-#     # TODO isn't this behaving in the opposite way
-#     # if n_train is 0, automatically use all the training data available
-#     if args.n_train:
-#         seq_train, target_train = split_set_tensor(
-#             seq_train, target_train, args.n_train, 0, True)
-
-#     print('Loading validation data from {}.val'.format(args.data_file))
-#     seq_val, target_val = load_rnn_data_from_file(
-#         args.data_file + '.val', args.n_targets)
+        return {'data': self.sequences[idx, :], 'target': self.targets[idx, :]}
