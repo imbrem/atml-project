@@ -123,7 +123,7 @@ def create_pg_graph(datapoint, n_edge_types):
     for edge_type in full_edge_type_indices.numpy().tolist():
         edge_attr[tuple(edge_type)] = 1
 
-    y = torch.FloatTensor([datapoint[2]-1]).view(1, 1)
+    y = torch.LongTensor([datapoint[2]-1]).view(1)
     return Data(x=x, edge_index=edge_index, edge_attr=edge_attr, y=y)
 
 
@@ -160,4 +160,5 @@ if __name__ == "__main__":
     train_dataset = bAbIDataset(dataroot, 0, True)
     loader = DataLoader(train_dataset, batch_size=2)
     batch0 = next(iter(loader))
-    print(batch0.x, batch0.edge_index, batch0.batch, batch0.edge_attr, batch0.y)
+    print(batch0.x.size(), batch0.edge_attr.size())
+    print(batch0.x, batch0.edge_attr)
