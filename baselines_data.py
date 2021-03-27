@@ -10,14 +10,12 @@ from pathlib import Path
 
 
 def get_data_filename(root_dir, fold_id, task_id, split):
+    """ Returns the filename up to .txt extension. """
     filename = Path(root_dir)
     filename = filename / 'processed_{}'.format(fold_id)
     filename = filename / 'rnn'
     filename = filename / ('test' if split is 'test' else 'train')
     filename = filename / '{}_rnn.txt'.format(task_id)
-
-    if split is 'validation':
-        filename = filename / '.val'
 
     return filename
 
@@ -35,8 +33,14 @@ def get_sequence_and_target_lists_from_file(filename, n_targets=1):
     return sequence_list, target_list
 
 
-def get_max_token_id(sequence_list, n_targets):
-    return max(map(max, sequence_list)) + (1 if n_targets > 1 else 0)
+def get_max_token_id(filename, n_targets):
+    filename = Path(filename) / '.dict'
+    n_lines = 0
+    with open(filename, 'r') as f:
+        for _ in f:
+            n_lines += 1
+
+    return n_lines + (1 if n_targets > 1 else 0)
 
 
 def one_hot_token_list(token_list, max_token_id):
@@ -71,7 +75,7 @@ def transform_target_list(target_list, n_targets, max_token_id):
     return targets
 
 
-def prepare_sequences_and_targets(token_lists, n_targets):
+def prepare_sequences_and_targets(token_lists, n_targets, max_token_id):
     """ Transforms token ID lists into tensors.
 
     Adds zero-vector padding to the end of sequence if the sequences have
@@ -80,11 +84,10 @@ def prepare_sequences_and_targets(token_lists, n_targets):
     Appends an end-of-sequence token to the target if n_targets > 1.
     """
     sequence_list, target_list = token_lists
-    max_token_id = get_max_token_id(sequence_list, n_targets)
     sequences = transform_sequence_list(sequence_list, max_token_id)
     targets = transform_target_list(target_list, n_targets, max_token_id)
 
-    return sequences, targets, max_token_id
+    return sequences, targets
 
 
 # TODO use custom number of training/validation examples
@@ -112,11 +115,14 @@ class BabiRNNDataset(Dataset):
         """
 
         filename = get_data_filename(root_dir, fold_id, task_id, split)
+        self.max_token_id = get_max_token_id(filename, n_targets)
+
+        if split is 'validation':
+            filename = filename / '.val'
+
         data = get_sequence_and_target_lists_from_file(filename, n_targets)
-        self.sequences, self.targets, self.max_token_id = \
-            prepare_sequences_and_targets(
-                data,
-                n_targets)
+        self.sequences, self.targets = \
+            prepare_sequences_and_targets(data, n_targets, self.max_token_id)
 
     def __len__(self):
         return len(self.sequences)
