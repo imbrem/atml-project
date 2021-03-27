@@ -9,7 +9,7 @@ from torch.utils.data import Dataset, DataLoader
 from pathlib import Path
 
 
-def get_data_filename(root_dir, fold_id, split, task_id):
+def get_data_filename(root_dir, fold_id, task_id, split):
     filename = Path(root_dir)
     filename = filename / 'processed_{}'.format(fold_id)
     filename = filename / 'rnn'
