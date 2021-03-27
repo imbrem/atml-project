@@ -28,9 +28,9 @@ def get_sequence_and_target_lists_from_file(filename, n_targets=1):
     target_list = []
     with open(filename, 'r') as f:
         for line in f:
-            example = map(int, line.split())
+            example = list(map(int, line.split()))
             sequence_list.append(torch.tensor(example[:-n_targets]))
-            target_list.append(example[-n_targets:])
+            target_list.append(torch.tensor(example[-n_targets:]))
 
     return sequence_list, target_list
 
