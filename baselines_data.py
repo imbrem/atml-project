@@ -42,7 +42,7 @@ def get_max_token_id(sequence_list, n_targets):
 def one_hot_token_list(token_list, max_token_id):
     one_hot_list = []
     for seq in token_list:
-        y = (torch.tensor(seq) - 1).view(-1, 1)
+        y = (seq.clone().detach() - 1).view(-1, 1)
         y_onehot = torch.FloatTensor(y.size(0), max_token_id).zero_()
         y_onehot.scatter_(1, y, 1)
         one_hot_list.append(y_onehot)
