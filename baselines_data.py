@@ -122,4 +122,4 @@ class BabiRNNDataset(Dataset):
         return len(self.sequences)
 
     def __getitem__(self, idx):
-        return {'data': self.sequences[idx, :], 'target': self.targets[idx, :]}
+        return self.sequences[idx, :], self.targets[idx, :]
