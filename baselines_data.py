@@ -84,7 +84,7 @@ def prepare_sequences_and_targets(token_lists, n_targets):
     sequences = transform_sequence_list(sequence_list, max_token_id)
     targets = transform_target_list(target_list, n_targets, max_token_id)
 
-    return sequences, targets
+    return sequences, targets, max_token_id
 
 
 # TODO use custom number of training/validation examples
@@ -113,8 +113,10 @@ class BabiRNNDataset(Dataset):
 
         filename = get_data_filename(root_dir, fold_id, task_id, split)
         data = get_sequence_and_target_lists_from_file(filename, n_targets)
-        self.sequences, self.targets = prepare_sequences_and_targets(data,
-                                                                     n_targets)
+        self.sequences, self.targets, self.max_token_id = \
+            prepare_sequences_and_targets(
+                data,
+                n_targets)
 
     def __len__(self):
         return len(self.sequences)
