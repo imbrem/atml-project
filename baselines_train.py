@@ -89,8 +89,10 @@ if args.n_epochs > 0:
 
 # TODO fix model initialisation
 if args.model == 'rnn':
-    model = BaselineRNN(input_size=args.input_size,
-                        hidden_size=args.hidden_size)
+    model = BaselineRNN(input_size=train_dataset.max_token_id,
+                        hidden_size=args.hidden_size,
+                        output_size=train_dataset.max_token_id,
+                        n_targets=args.n_targets)
 elif args.model == 'lstm':
     model = None
 else:
