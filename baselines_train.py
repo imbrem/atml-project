@@ -33,9 +33,6 @@ parser.add_argument('--root_dir', default='', type=str)
 parser.add_argument('--task_id', default=4, type=int)
 parser.add_argument('--n_train', default=0, type=int,
                     help='number of training instances, 0 to use all available')
-parser.add_argument('--n_val', default=50, type=int,
-                    help='number of validation instances (will not be used if '
-                         'datafile.val exists)')
 
 # Training parameters
 parser.add_argument('--learning_rate', default=1e-3, type=float,
@@ -69,7 +66,8 @@ torch.manual_seed(args.seed)
 torch.set_num_threads(args.n_threads)
 
 train_dataset = BabiRNNDataset(args.root_dir, args.fold_id, args.task_id,
-                               args.n_targets, split='train')
+                               args.n_targets, split='train',
+                               n_train=args.n_train)
 train_dataloader = DataLoader(train_dataset, batch_size=4, shuffle=True)
 
 val_dataset = BabiRNNDataset(args.root_dir, args.fold_id, args.task_id,
@@ -150,14 +148,3 @@ def train(train_loader, val_loader):
             val_loss += loss.item()
 
     return total_loss / len(train_loader), val_loss / len(val_loader)
-
-# TODO main
-# if __name__ == "__main__":
-#     from torch_geometric.data import DataLoader
-
-#     dataroot = 'babi_data/processed_1/train/4_graphs.txt'
-#     train_dataset = bAbIDataset(dataroot, 0, True)
-#     loader = DataLoader(train_dataset, batch_size=2)
-#     batch0 = next(iter(loader))
-#     print(batch0.x, batch0.edge_index, batch0.batch, batch0.edge_attr,
-#     batch0.y)

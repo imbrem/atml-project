@@ -20,15 +20,19 @@ def get_data_filename(root_dir, fold_id, task_id, split):
     return filename
 
 
-def get_sequence_and_target_lists_from_file(filename, n_targets=1):
+def get_sequence_and_target_lists_from_file(filename, n_targets=1, n_train=0):
     """ Returns sequences and targets in a given file as lists of token IDs. """
     sequence_list = []
     target_list = []
     with open(filename, 'r') as f:
+        n_lines = 0
         for line in f:
             example = list(map(int, line.split()))
             sequence_list.append(torch.tensor(example[:-n_targets]))
             target_list.append(torch.tensor(example[-n_targets:]))
+            n_lines += 1
+            if 0 < n_train == n_lines:
+                break
 
     return sequence_list, target_list
 
@@ -104,7 +108,7 @@ class BabiRNNDataset(Dataset):
     """
 
     def __init__(self, root_dir, fold_id, task_id, n_targets=1,
-                 split='train'):
+                 split='train', n_train=0):
         """
         Args:
             root_dir (string): Path to the fold root directory.
@@ -112,6 +116,7 @@ class BabiRNNDataset(Dataset):
             task_id (int): The ID of the bAbI task.
             n_targets (int): The length of output sequences.
             split (str): One of 'train', 'validation', 'test'
+            n_train (int): How many training instances to use.
         """
 
         filename = get_data_filename(root_dir, fold_id, task_id, split)
@@ -120,7 +125,11 @@ class BabiRNNDataset(Dataset):
         if split is 'validation':
             filename = filename.parent / (filename.name + '.val')
 
-        data = get_sequence_and_target_lists_from_file(filename, n_targets)
+        if split is not 'train':
+            n_train = 0
+
+        data = get_sequence_and_target_lists_from_file(filename, n_targets,
+                                                       n_train)
         self.sequences, self.targets = \
             prepare_sequences_and_targets(data, n_targets, self.max_token_id)
 
