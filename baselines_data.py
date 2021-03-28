@@ -7,6 +7,7 @@ Creates a PyTorch DataLoader with batched sequences.
 import torch
 from torch.utils.data import Dataset, DataLoader
 from pathlib import Path
+import random
 
 
 def get_data_filename(root_dir, fold_id, task_id, split):
@@ -25,14 +26,15 @@ def get_sequence_and_target_lists_from_file(filename, n_targets=1, n_train=0):
     sequence_list = []
     target_list = []
     with open(filename, 'r') as f:
-        n_lines = 0
         for line in f:
             example = list(map(int, line.split()))
             sequence_list.append(torch.tensor(example[:-n_targets]))
             target_list.append(torch.tensor(example[-n_targets:]))
-            n_lines += 1
-            if 0 < n_train == n_lines:
-                break
+
+    if n_train > 0:
+        sample = random.sample(range(len(sequence_list)), k=n_train)
+        sequence_list = [sequence_list[i] for i in sample]
+        target_list = [target_list[i] for i in sample]
 
     return sequence_list, target_list
 
