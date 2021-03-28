@@ -87,7 +87,6 @@ if args.n_epochs > 0:
     args.max_iters = args.n_epochs * math.ceil(
         args.n_train * 1. / args.batch_size)
 
-
 # TODO fix model initialisation
 if args.model == 'rnn':
     model = BaselineRNN(input_size=args.input_size,
@@ -103,7 +102,6 @@ if args.optimizer is not 'adam':
 optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
 
 criterion = nn.CrossEntropyLoss()
-
 
 # TODO logging, early stopping
 # print_every, save_every, plot_every
@@ -121,18 +119,13 @@ def train(train_loader, val_loader):
 
     total_loss = 0
     # Training
-    for sequences, targets in train_loader:  # batch
+    for sequences, targets in train_loader:  # iterate through batches
         sequences, targets = sequences.to(device), targets.to(device)
         optimizer.zero_grad()
 
-        # if args.n_targets > 1:
-        #         t_batch = torch.reshape(t_batch, t_batch.size(
-        #             0) * args.n_targets, t_batch.size(1) / args.n_targets)
+        outputs, _ = model(sequences)
 
-        out = model(sequences)
-
-        # TODO what if sequence output
-        loss = criterion(out.view(-1, ), targets.view(-1))
+        loss = criterion(outputs.permute(0, 2, 1), targets.argmax(dim=-1))
         loss.backward()
 
         total_loss += loss.item()
@@ -149,23 +142,12 @@ def train(train_loader, val_loader):
                 device), val_targets.to(
                 device)
 
-            out = model(val_sequences)
-            loss = criterion(out, val_targets)
+            outputs, _ = model(val_sequences)
+            loss = criterion(outputs.permute(0, 2, 1), val_targets.argmax(
+                dim=-1))
             val_loss += loss.item()
 
     return total_loss / len(train_loader), val_loss / len(val_loader)
-
-# TODO error evaluation
-# def eval_error(model, x, t):
-#     pred = model.predict(x, args.n_targets)
-#     # pred = pred.typeAs(t)
-#     if args.n_targets > 1:
-#         # TODO wth
-#         return pred.ne(t).type('torch.DoubleTensor').sum(1).gt(0).type(
-#         'torch.DoubleTensor').mean()
-#     else:
-#         # TODO fix
-#         return pred.ne(t).type('torch.DoubleTensor').mean()
 
 # TODO main
 # if __name__ == "__main__":
