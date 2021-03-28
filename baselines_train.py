@@ -85,7 +85,6 @@ if args.n_epochs > 0:
     args.max_iters = args.n_epochs * math.ceil(
         args.n_train * 1. / args.batch_size)
 
-# TODO fix model initialisation
 if args.model == 'rnn':
     model = BaselineRNN(input_size=train_dataset.max_token_id,
                         hidden_size=args.hidden_size,

@@ -33,10 +33,10 @@ class BaselineRNN(nn.Module):
         self.output_size = output_size
         self.n_targets = n_targets
 
-        # TODO i2h can be replicated by off-the-shelf RNN
+        # note: i2h can be replicated by off-the-shelf RNN without the loop in
+        # training, but with the loop for output generation.
         self.i2h = nn.Linear(input_size + hidden_size, hidden_size)
         self.h2o = nn.Linear(hidden_size, output_size)
-        self.softmax = nn.LogSoftmax(dim=1)
 
     def forward(self, sequences):
         """
@@ -54,7 +54,7 @@ class BaselineRNN(nn.Module):
         output = torch.zeros(sequences.size(0), self.n_targets,
                              self.output_size)
 
-        # TODO off-the-shelf RNN would remove this loop;
+        # off-the-shelf RNN would remove this loop;
         # the outputs would then be computed on the `outputs` variable of
         # that RNN
         for i in range(
@@ -73,7 +73,8 @@ class BaselineRNN(nn.Module):
         return output, hidden
 
     def reset_parameters(self):
-        self.rnn_layer.reset_parameters()
+        self.i2h.reset_parameters()
+        self.h2o.reset_parameters()
 
     def count_parameters(self):
         return sum(p.numel() for p in self.parameters() if p.requires_grad)
