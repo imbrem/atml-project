@@ -13,38 +13,65 @@ The implementation in the paper uses 50-dimensional embeddings and
 treated as in a classification problem.
 """
 
+import torch
 import torch.nn as nn
+from torch.nn import functional as F
 
 
 class BaselineRNN(nn.Module):
     """Baseline RNN class.
 
-    Implemented using a single off-the-shelf PyTorch RNN layer, which
-    could be modified to include the complete low-level detail if needed.
+    Implements RNN from scratch because of off-the-shelf RNN restrictions to use
+    the output size identical to hidden size, or appending an additional layer,
+    thereby changing the behaviour.
     """
 
-    def __init__(self, input_size, hidden_size, **kwargs):
+    def __init__(self, input_size, hidden_size, output_size, n_targets=1,
+                 **kwargs):
         super(BaselineRNN, self).__init__()
         self.input_size = input_size
         self.hidden_size = hidden_size
+        self.output_size = output_size
+        self.n_targets = n_targets
 
-        self.rnn_layer = nn.RNN(input_size=input_size,
-                                hidden_size=hidden_size,
-                                batch_first=True)
+        # TODO i2h can be replicated by off-the-shelf RNN
+        self.i2h = nn.Linear(input_size + hidden_size, hidden_size)
+        self.h2o = nn.Linear(hidden_size, output_size)
+        self.softmax = nn.LogSoftmax(dim=1)
 
-    def forward(self, data, n_outputs=1):
+    def forward(self, sequences):
         """
         Args:
-            data: (batch, seq_len, input_size) the DataLoader batch.
-            n_outputs (int): Number of target outputs.
+            sequences: (batch, seq_len, input_size) the DataLoader batch.
         Returns:
-            output: (batch, n_outputs, hidden_size)
-            hidden: (batch, num_layers, hidden_size)
+            output: (batch, n_outputs, output_size) where output_size =
+            max_token_id
+            hidden: (batch, num_layers=1, hidden_size)
         """
-        # initial hidden representation defaults to 0
-        x, batch = data.x, data.batch
-        output, hidden = self.rnn_layer(x)
-        return output[:, -n_outputs:, :], hidden
+
+        # [batch_size, hidden_size]
+        hidden = torch.zeros(sequences.size(0), self.hidden_size)
+        # [batch_size, n_targets, output_size=max_token_id]
+        output = torch.zeros(sequences.size(0), self.n_targets,
+                             self.output_size)
+
+        # TODO off-the-shelf RNN would remove this loop;
+        # the outputs would then be computed on the `outputs` variable of
+        # that RNN
+        for i in range(
+                sequences.size(1) - self.n_targets):  # iterate over timesteps
+            combined = torch.cat((sequences[:, i, :], hidden), dim=1)
+            hidden = self.i2h(combined)
+            hidden = F.tanh(hidden)
+
+        for i in range(self.n_targets):
+            combined = torch.cat((sequences[:, -self.n_targets + i, :],
+                                  hidden), dim=1)
+            hidden = self.i2h(combined)
+            hidden = F.tanh(hidden)
+            output[:, -self.n_targets + i] = self.h2o(hidden)
+
+        return output, hidden
 
     def reset_parameters(self):
         self.rnn_layer.reset_parameters()
