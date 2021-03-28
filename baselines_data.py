@@ -34,7 +34,7 @@ def get_sequence_and_target_lists_from_file(filename, n_targets=1):
 
 
 def get_max_token_id(filename, n_targets):
-    filename = Path(filename) / '.dict'
+    filename = filename.parent / (filename.name + '.dict')
     n_lines = 0
     with open(filename, 'r') as f:
         for _ in f:
@@ -118,7 +118,7 @@ class BabiRNNDataset(Dataset):
         self.max_token_id = get_max_token_id(filename, n_targets)
 
         if split is 'validation':
-            filename = filename / '.val'
+            filename = filename.parent / (filename.name + '.val')
 
         data = get_sequence_and_target_lists_from_file(filename, n_targets)
         self.sequences, self.targets = \
