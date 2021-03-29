@@ -5,7 +5,7 @@ Creates a PyTorch DataLoader with batched sequences.
 """
 
 import torch
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset
 from pathlib import Path
 import random
 
@@ -39,7 +39,8 @@ def get_sequence_and_target_lists_from_file(filename, n_targets=1, n_train=0):
     return sequence_list, target_list
 
 
-def get_max_token_id(filename, n_targets):
+def get_max_token_id(root_dir, task_id, n_targets, fold_id=1):
+    filename = get_data_filename(root_dir, fold_id, task_id, split='train')
     filename = filename.parent / (filename.name + '.dict')
     n_lines = 0
     with open(filename, 'r') as f:
@@ -122,7 +123,7 @@ class BabiRNNDataset(Dataset):
         """
 
         filename = get_data_filename(root_dir, fold_id, task_id, split)
-        self.max_token_id = get_max_token_id(filename, n_targets)
+        max_token_id = get_max_token_id(root_dir, task_id, n_targets, fold_id)
 
         if split is 'validation':
             filename = filename.parent / (filename.name + '.val')
@@ -133,7 +134,7 @@ class BabiRNNDataset(Dataset):
         data = get_sequence_and_target_lists_from_file(filename, n_targets,
                                                        n_train)
         self.sequences, self.targets = \
-            prepare_sequences_and_targets(data, n_targets, self.max_token_id)
+            prepare_sequences_and_targets(data, n_targets, max_token_id)
 
     def __len__(self):
         return len(self.sequences)

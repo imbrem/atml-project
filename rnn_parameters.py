@@ -1,3 +1,6 @@
+from baselines_data import get_max_token_id
+
+
 def get_default_parameters():
     parameters = {'model': 'rnn',
                   'task_id': 4,
@@ -39,4 +42,11 @@ def get_parameters_for_task(model, task_id):
         parameters['batch_size'] = 20
         parameters['n_targets'] = 2
 
+    parameters['max_token_id'] = get_max_token_id(parameters[
+                                                      'root_dir'],
+                                                  1,
+                                                  parameters[
+                                                      'task_id'],
+                                                  parameters[
+                                                      'n_targets'])
     return parameters
