@@ -14,6 +14,10 @@ from torch.utils.data import DataLoader
 import baseline_parameters
 import torch
 import argparse
+import wandb
+from datetime import datetime
+
+wandb.init(project='ggsnn-rnn-baselines')
 
 SEED = 8
 N_THREADS = 1
@@ -47,7 +51,7 @@ def get_loaders(params, fold_id, n_train):
     return train_loader, val_loader, test_loader
 
 
-def train(model, train_loader, val_loader, iters):
+def train(model, train_loader, val_loader, iters, run_desc):
     """ Training procedure for the given number of iterations. """
     mean_train_loss, mean_val_loss, train_acc, val_acc = 0., 0., 0., 0.
 
@@ -97,14 +101,13 @@ def train(model, train_loader, val_loader, iters):
         train_acc = train_correct / train_total
         val_acc = val_correct / val_total
 
-        epoch += 1
-        print('Epoch {}'.format(epoch))
-        print('Loss:\t{} (train)\t{} (val)'.format(mean_train_loss,
-                                                   mean_val_loss))
-        print('Accuracy:\t{} (train)\t{} (val)'.format(train_acc, val_acc))
+        wandb.log({'train_loss_{}'.format(run_desc): mean_train_loss,
+                   'val_loss_{}'.format(run_desc): mean_val_loss,
+                   'train_acc_{}'.format(run_desc): train_acc,
+                   'val_acc_{}'.format(run_desc): val_acc})
 
-    # TODO output_directory
-    # TODO logging, early stopping
+        epoch += 1
+
     return mean_train_loss, mean_val_loss, train_acc, val_acc
 
 
@@ -114,9 +117,9 @@ if __name__ == '__main__':
     parser.add_argument('--model', help="RNN/LSTM", choices=['rnn', 'lstm'])
     args = parser.parse_args()
 
-    model = args.model
+    model_type = args.model
     task_id = args.task_id
-    params = baseline_parameters.get_parameters_for_task(model, task_id)
+    params = baseline_parameters.get_parameters_for_task(model_type, task_id)
     n_train_to_try = params['n_train_to_try']
 
     torch.manual_seed(SEED)
@@ -125,10 +128,7 @@ if __name__ == '__main__':
     for n_train in n_train_to_try:
         fold_performances = []
         for fold_id in range(1, N_FOLDS + 1):
-            train_loader, val_loader, test_loader = get_loaders(params,
-                                                                fold_id,
-                                                                n_train)
-            if model is 'rnn':
+            if model_type is 'rnn':
                 model = BaselineRNN(input_size=params['max_token_id'],
                                     hidden_size=params['hidden_size'],
                                     n_targets=params['n_targets'])
@@ -137,8 +137,22 @@ if __name__ == '__main__':
                                      hidden_size=params['hidden_size'],
                                      n_targets=params['n_targets'])
 
-            print('Total number of parameters: {}\n'.format(
-                model.count_parameters()))
+            wandb.run.save()
+            wandb.watch(model)
+            wandb.log({'n_parameters': model.count_parameters()})
+
+            wandb.config.update(params)
+            run_desc = 'fold_{}_n_train_{}'.format(fold_id, n_train)
+            wandb.run.name = '{}-task_{}'.format(model, task_id) + run_desc
+
+            wandb.run.save()
+            early_stopping_checkpoint = '{}_{}_state_dict.pt'.format(
+                datetime.now().strftime("%Y-%m-%d_%H:%M:%S"),
+                wandb.run.name)
+
+            train_loader, val_loader, test_loader = get_loaders(params,
+                                                                fold_id,
+                                                                n_train)
 
             optimizer = torch.optim.Adam(model.parameters(),
                                          lr=params['learning_rate'])
@@ -146,26 +160,22 @@ if __name__ == '__main__':
 
             iters = params['max_iters'] / params['batch_size']
 
-            # TODO Set up checkpoint directory
-            # Path(args.output_dir).mkdir(parents=True, exist_ok=True)
-            # print('Checkpoints will be saved to ', args.output_dir)
-            fold_performance = train(model, train_loader, val_loader, iters)
-            fold_performances.append(fold_performances)
-            print(
-                'Fold {} train/val performance\nLoss (train): {}\nLoss (val): '
-                '{}\nAccuracy (train): {}\nAccuracy (val): {}'.format(
-                    fold_id,
-                    fold_performance[0],
-                    fold_performance[1],
-                    fold_performance[2],
-                    fold_performance[3]))
+            fold_performance = train(model, train_loader, val_loader, iters,
+                                     run_desc)
+            wandb.log({'final_train_loss_{}'.format(run_desc):
+                           fold_performance[0],
+                       'final_val_loss_{}'.format(run_desc):
+                           fold_performance[1],
+                       'final_train_acc_{}'.format(run_desc):
+                           fold_performance[2],
+                       'final_val_acc_{}'.format(run_desc):
+                           fold_performance[3]})
+
+            fold_performances.append(fold_performance)
 
         final_performances = list(
             torch.tensor(fold_performances).mean(dim=0).numpy())
-        print(
-            'Final train/val performance\nLoss (train): {}\nLoss (val): '
-            '{}\nAccuracy (train): {}\nAccuracy (val): {}'.format(
-                final_performances[0],
-                final_performances[1],
-                final_performances[2],
-                final_performances[3]))
+        wandb.log({"final_train_loss": fold_performances[0],
+                   "final_val_loss": fold_performances[1],
+                   "final_train_acc": fold_performances[2],
+                   "final_val_acc": fold_performances[3]})
