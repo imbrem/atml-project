@@ -11,9 +11,7 @@ def get_default_parameters():
                   'batch_size': 100,
                   'max_iters': 1000,
                   'root_dir': 'babi_data',
-                  'n_train_to_try': [0],
-                  'print_every': 100,
-                  'save_every': 2000}
+                  'n_train_to_try': [0]}
 
     return parameters
 
@@ -35,8 +33,6 @@ def get_parameters_for_task(model, task_id):
     elif task_id == 18:
         parameters['max_iters'] = 500
         parameters['learning_rate'] = 0.0005
-        parameters['print_every'] = 10
-        parameters['save_every'] = 1000
     elif task_id == 19:
         parameters['max_iters'] = 10000 if model is 'rnn' else 5000
         parameters['batch_size'] = 20
@@ -44,7 +40,6 @@ def get_parameters_for_task(model, task_id):
 
     parameters['max_token_id'] = get_max_token_id(parameters[
                                                       'root_dir'],
-                                                  1,
                                                   parameters[
                                                       'task_id'],
                                                   parameters[
