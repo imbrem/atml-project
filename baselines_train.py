@@ -49,8 +49,11 @@ def get_loaders(params, fold_id, n_train):
 
 def train(model, train_loader, val_loader, iters):
     """ Training procedure for the given number of iterations. """
+    mean_train_loss, mean_val_loss, train_acc, val_acc = 0., 0., 0., 0.
+
     model.train()
 
+    epoch = 0
     for _ in range(iters):
         train_loss = 0
         train_total = 0.
@@ -94,12 +97,15 @@ def train(model, train_loader, val_loader, iters):
         train_acc = train_correct / train_total
         val_acc = val_correct / val_total
 
+        epoch += 1
+        print('Epoch {}'.format(epoch))
         print('Loss:\t{} (train)\t{} (val)'.format(mean_train_loss,
                                                    mean_val_loss))
         print('Accuracy:\t{} (train)\t{} (val)'.format(train_acc, val_acc))
 
     # TODO output_directory
     # TODO logging, early stopping
+    return mean_train_loss, mean_val_loss, train_acc, val_acc
 
 
 if __name__ == '__main__':
@@ -117,6 +123,7 @@ if __name__ == '__main__':
     torch.set_num_threads(N_THREADS)
 
     for n_train in n_train_to_try:
+        fold_performances = []
         for fold_id in range(1, N_FOLDS + 1):
             train_loader, val_loader, test_loader = get_loaders(params,
                                                                 fold_id,
@@ -142,4 +149,23 @@ if __name__ == '__main__':
             # TODO Set up checkpoint directory
             # Path(args.output_dir).mkdir(parents=True, exist_ok=True)
             # print('Checkpoints will be saved to ', args.output_dir)
-            train(model, train_loader, val_loader, iters)
+            fold_performance = train(model, train_loader, val_loader, iters)
+            fold_performances.append(fold_performances)
+            print(
+                'Fold {} train/val performance\nLoss (train): {}\nLoss (val): '
+                '{}\nAccuracy (train): {}\nAccuracy (val): {}'.format(
+                    fold_id,
+                    fold_performance[0],
+                    fold_performance[1],
+                    fold_performance[2],
+                    fold_performance[3]))
+
+        final_performances = list(
+            torch.tensor(fold_performances).mean(dim=0).numpy())
+        print(
+            'Final train/val performance\nLoss (train): {}\nLoss (val): '
+            '{}\nAccuracy (train): {}\nAccuracy (val): {}'.format(
+                final_performances[0],
+                final_performances[1],
+                final_performances[2],
+                final_performances[3]))
