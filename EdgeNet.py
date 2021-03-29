@@ -52,7 +52,7 @@ if __name__ == "__main__":
     dataroot = 'babi_data/processed_1/train/4_graphs.txt'
     train_dataset = bAbIDataset(dataroot, 0, True)
     loader = DataLoader(train_dataset, batch_size=2)
-    for _ in range(2):
+    for _ in range(10):
         epoch_loss = 0
         epoch_correct = 0
         total = 0
@@ -69,6 +69,5 @@ if __name__ == "__main__":
             examples = batch.y.size(0)
             total += examples
             epoch_loss += loss.item() * examples
-            print(predicted, batch.y)
             epoch_correct += (predicted == batch.y).sum()
         print("Epoch loss: {}; Epoch accuracy: {}".format(epoch_loss/total, epoch_correct/total))
