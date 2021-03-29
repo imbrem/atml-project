@@ -52,7 +52,9 @@ def train(model, train_loader, val_loader, iters):
     model.train()
 
     for _ in range(iters):
-        total_loss = 0
+        train_loss = 0
+        train_total = 0.
+        train_correct = 0.
         # Training
         for sequences, targets in train_loader:  # iterate through batches
             sequences, targets = sequences.to(device), targets.to(device)
@@ -63,7 +65,9 @@ def train(model, train_loader, val_loader, iters):
             loss = criterion(outputs.permute(0, 2, 1), targets)
             loss.backward()
 
-            total_loss += loss.item()
+            train_loss += loss.item()
+            train_correct += (outputs.argmax(dim=-1).eq(targets)).sum()
+            train_total += len(targets)
 
             # Gradient clipping as per original implementation.
             torch.nn.utils.clip_grad_value_(model.parameters(), 5)
@@ -72,6 +76,8 @@ def train(model, train_loader, val_loader, iters):
         # Validation
         with torch.set_grad_enabled(False):
             val_loss = 0
+            val_total = 0.
+            val_correct = 0.
             for val_sequences, val_targets in val_loader:
                 val_sequences, val_targets = val_sequences.to(
                     device), val_targets.to(
@@ -80,9 +86,17 @@ def train(model, train_loader, val_loader, iters):
                 outputs, _ = model(val_sequences)
                 loss = criterion(outputs.permute(0, 2, 1), val_targets)
                 val_loss += loss.item()
+                val_correct += (outputs.argmax(dim=-1).eq(val_targets)).sum()
+                val_total += len(val_targets)
 
-        # TODO accuracy
-        print(total_loss / len(train_loader), val_loss / len(val_loader))
+        mean_train_loss = train_loss / len(train_loader)
+        mean_val_loss = val_loss / len(val_loader)
+        train_acc = train_correct / train_total
+        val_acc = val_correct / val_total
+
+        print('Loss:\t{} (train)\t{} (val)'.format(mean_train_loss,
+                                                   mean_val_loss))
+        print('Accuracy:\t{} (train)\t{} (val)'.format(train_acc, val_acc))
 
     # TODO output_directory
     # TODO logging, early stopping
@@ -129,4 +143,3 @@ if __name__ == '__main__':
             # Path(args.output_dir).mkdir(parents=True, exist_ok=True)
             # print('Checkpoints will be saved to ', args.output_dir)
             train(model, train_loader, val_loader, iters)
-
