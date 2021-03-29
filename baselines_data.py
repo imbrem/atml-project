@@ -71,14 +71,11 @@ def transform_sequence_list(sequence_list, max_token_id):
 
 def transform_target_list(target_list, n_targets, max_token_id):
     # Append special end of sequence symbol when the target is a sequence.
-    one_hot_target_list = one_hot_token_list(target_list, max_token_id)
-    targets = torch.stack(
-        one_hot_target_list)  # [n_seq x n_targets x max_token_id]
+    targets = torch.stack(target_list) - 1 # [n_seq x n_targets]
     if n_targets > 1:
-        eos_tensor = torch.zeros(targets.size(0), 1, targets.size(2))
-        eos_tensor[:, :, -1] = 1
+        eos_tensor = torch.ones(targets.size(0), 1) * (max_token_id - 1)
         targets = torch.cat((targets, eos_tensor),
-                            dim=1)  # [n_seq x (n_targets + 1) x max_token_id]
+                            dim=1)  # [n_seq x (n_targets + 1)]
 
     return targets
 

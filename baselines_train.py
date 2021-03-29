@@ -60,7 +60,7 @@ def train(model, train_loader, val_loader, iters):
 
             outputs, _ = model(sequences)
 
-            loss = criterion(outputs.permute(0, 2, 1), targets.argmax(dim=-1))
+            loss = criterion(outputs.permute(0, 2, 1), targets)
             loss.backward()
 
             total_loss += loss.item()
@@ -78,14 +78,14 @@ def train(model, train_loader, val_loader, iters):
                     device)
 
                 outputs, _ = model(val_sequences)
-                loss = criterion(outputs.permute(0, 2, 1), val_targets.argmax(
-                    dim=-1))
+                loss = criterion(outputs.permute(0, 2, 1), val_targets)
                 val_loss += loss.item()
 
+        # TODO accuracy
         print(total_loss / len(train_loader), val_loss / len(val_loader))
 
-        # TODO output_directory
-        # TODO logging, early stopping
+    # TODO output_directory
+    # TODO logging, early stopping
 
 
 if __name__ == '__main__':
