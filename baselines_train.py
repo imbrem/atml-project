@@ -143,7 +143,7 @@ if __name__ == '__main__':
 
             wandb.config.update(params)
             run_desc = 'fold_{}_n_train_{}'.format(fold_id, n_train)
-            wandb.run.name = '{}-task_{}'.format(model, task_id) + run_desc
+            wandb.run.name = '{}_task_{}'.format(model_type, task_id) + run_desc
 
             wandb.run.save()
             early_stopping_checkpoint = '{}_{}_state_dict.pt'.format(
