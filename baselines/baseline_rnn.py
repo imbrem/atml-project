@@ -30,7 +30,7 @@ class BaselineRNN(nn.Module):
         super(BaselineRNN, self).__init__()
         self.input_size = input_size
         self.hidden_size = hidden_size
-        self.output_size = output_size
+        self.output_size = self.input_size
         self.n_targets = n_targets
 
         # note: i2h can be replicated by off-the-shelf RNN without the loop in
