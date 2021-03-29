@@ -31,7 +31,8 @@ class BaselineRNN(nn.Module):
         self.input_size = input_size
         self.hidden_size = hidden_size
         self.output_size = self.input_size
-        self.n_targets = n_targets
+        self.n_targets = n_targets + (
+            1 if n_targets > 1 else 0)  # special eos symbol
 
         # note: i2h can be replicated by off-the-shelf RNN without the loop in
         # training, but with the loop for output generation.
