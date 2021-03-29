@@ -26,7 +26,7 @@ class BaselineRNN(nn.Module):
     thereby changing the behaviour.
     """
 
-    def __init__(self, input_size, hidden_size, output_size, n_targets=1):
+    def __init__(self, input_size, hidden_size, n_targets=1):
         super(BaselineRNN, self).__init__()
         self.input_size = input_size
         self.hidden_size = hidden_size
@@ -36,7 +36,7 @@ class BaselineRNN(nn.Module):
         # note: i2h can be replicated by off-the-shelf RNN without the loop in
         # training, but with the loop for output generation.
         self.i2h = nn.Linear(input_size + hidden_size, hidden_size)
-        self.h2o = nn.Linear(hidden_size, output_size)
+        self.h2o = nn.Linear(hidden_size, self.output_size)
 
     def forward(self, sequences):
         """
