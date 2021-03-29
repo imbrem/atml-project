@@ -9,99 +9,63 @@ from baselines_data import BabiRNNDataset
 from baselines.baseline_rnn import BaselineRNN
 from torch import nn
 from torch.utils.data import DataLoader
+import rnn_parameters
 import torch
 import argparse
-from pathlib import Path
-import math
 
-# ARGUMENT PARSING
+SEED = 8
+N_THREADS = 1
 
-parser = argparse.ArgumentParser()
+model = 'rnn'
+task_id = 4
+n_train = 0
+fold_id = 1
 
-# Model parameters
-parser.add_argument('--model', default='rnn', type=str, help='rnn or lstm')
-parser.add_argument('--embedding_size', default=50, type=int,
-                    help='dimensionality of the embeddings')
-parser.add_argument('--hidden_size', default=50, type=int,
-                    help='dimensionality of the hidden layers')
-parser.add_argument('--n_targets', default=1, type=int,
-                    help='number of targets for each example, if > 1 the '
-                         'targets will be treated as a sequence')
-
-# Data parameters
-parser.add_argument('--root_dir', default='', type=str)
-parser.add_argument('--task_id', default=4, type=int)
-parser.add_argument('--n_train', default=0, type=int,
-                    help='number of training instances, 0 to use all available')
-
-# Training parameters
-parser.add_argument('--learning_rate', default=1e-3, type=float,
-                    help='learning rate')
-parser.add_argument('--optimizer', default='adam', type=str,
-                    help='type of optimization algorithm to use')
-parser.add_argument('--batch_size', default=10, type=int, help='minibatch size')
-parser.add_argument('--n_epochs', default=0, type=int,
-                    help='number of epochs to train, (overrides maxiters)')
-parser.add_argument('--max_iters', default=1000, type=int,
-                    help='maximum number of weight updates')
-parser.add_argument('--n_threads', default=1, type=int,
-                    help='set the number of threads to use with this process')
-
-# Checkpoint and logging parameters
-parser.add_argument('--output_dir', default='.', type=str,
-                    help='output directory')
-parser.add_argument('--print_every', default=10, type=int,
-                    help='frequency of training information logs')
-parser.add_argument('--save_every', default=100, type=int,
-                    help='frequency of checkpoints')
-parser.add_argument('--plot_every', default=10, type=int,
-                    help='frequency of training curve updates')
-
-parser.add_argument('--seed', default=8, type=int, help='random seed')
-
-args = parser.parse_args()
+params = rnn_parameters.get_parameters_for_task(model, task_id)
 
 # DATASET LOADERS
-torch.manual_seed(args.seed)
-torch.set_num_threads(args.n_threads)
+torch.manual_seed(SEED)
+torch.set_num_threads(N_THREADS)
 
-train_dataset = BabiRNNDataset(args.root_dir, args.fold_id, args.task_id,
-                               args.n_targets, split='train',
-                               n_train=args.n_train)
-train_dataloader = DataLoader(train_dataset, batch_size=4, shuffle=True)
+# TODO for every n_train_to_try
+# for n_train in params['n_train_to_try']
+# TODO for every fold
 
-val_dataset = BabiRNNDataset(args.root_dir, args.fold_id, args.task_id,
-                             args.n_targets, split='validation')
-val_dataloader = DataLoader(val_dataset, batch_size=4, shuffle=True)
+train_dataset = BabiRNNDataset(params['root_dir'], fold_id,
+                               params['task_id'],
+                               params['n_targets'], split='train',
+                               n_train=n_train)
+train_dataloader = DataLoader(train_dataset, batch_size=params['batch_size'],
+                              shuffle=True)
 
-test_dataset = BabiRNNDataset(args.root_dir, args.fold_id, args.task_id,
-                              args.n_targets, split='test')
+val_dataset = BabiRNNDataset(params['root_dir'], fold_id,
+                             params['task_id'],
+                             params['n_targets'], split='validation')
+val_dataloader = DataLoader(val_dataset, batch_size=params['batch_size'],
+                            shuffle=True)
+
+test_dataset = BabiRNNDataset(params['root_dir'], fold_id,
+                              params['task_id'],
+                              params['n_targets'], split='test')
 test_dataloader = DataLoader(test_dataset, shuffle=False)
 
-if args.n_targets > 1:
-    args.n_targets += 1  # add 1 to include the end symbol
+# TODO set max_iters
+# max_iters = n_epochs * math.ceil(n_train * 1. / batch_size)
 
-if args.n_epochs > 0:
-    args.max_iters = args.n_epochs * math.ceil(
-        args.n_train * 1. / args.batch_size)
-
-if args.model == 'rnn':
+# TODO better ways to obtain max_token_id
+if model is 'rnn':
     model = BaselineRNN(input_size=train_dataset.max_token_id,
-                        hidden_size=args.hidden_size,
-                        output_size=train_dataset.max_token_id,
-                        n_targets=args.n_targets)
-elif args.model == 'lstm':
+                        hidden_size=params['hidden_size'],
+                        n_targets=params['n_targets'])
+else:  # 'lstm'
     model = None
-else:
-    parser.error('Unknown model type: {}'.format(args.model))
+
 print('Total number of parameters: {}\n'.format(model.count_parameters()))
 
-if args.optimizer is not 'adam':
-    raise parser.error('Unsupported optimizer')
-optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
-
+optimizer = torch.optim.Adam(model.parameters(), lr=params['learning_rate'])
 criterion = nn.CrossEntropyLoss()
 
+# TODO output_directory
 # TODO logging, early stopping
 # print_every, save_every, plot_every
 
