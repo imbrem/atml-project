@@ -8,6 +8,7 @@ https://github.com/yujiali/ggnn/blob/master/babi/run_rnn_baselines.py
 
 from baselines_data import BabiRNNDataset
 from baselines.baseline_rnn import BaselineRNN
+from baselines.baseline_lstm import BaselineLSTM
 from torch import nn
 from torch.utils.data import DataLoader
 import baseline_parameters
@@ -111,7 +112,9 @@ if __name__ == '__main__':
                                     hidden_size=params['hidden_size'],
                                     n_targets=params['n_targets'])
             else:  # 'lstm'
-                model = None
+                model = BaselineLSTM(input_size=params['max_token_id'],
+                                     hidden_size=params['hidden_size'],
+                                     n_targets=params['n_targets'])
 
             print('Total number of parameters: {}\n'.format(
                 model.count_parameters()))
