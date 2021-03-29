@@ -39,7 +39,8 @@ def get_sequence_and_target_lists_from_file(filename, n_targets=1, n_train=0):
     return sequence_list, target_list
 
 
-def get_max_token_id(root_dir, task_id, n_targets, fold_id=1):
+def get_max_token_id(root_dir, task_id, n_targets):
+    fold_id = 1
     filename = get_data_filename(root_dir, fold_id, task_id, split='train')
     filename = filename.parent / (filename.name + '.dict')
     n_lines = 0
@@ -123,7 +124,7 @@ class BabiRNNDataset(Dataset):
         """
 
         filename = get_data_filename(root_dir, fold_id, task_id, split)
-        max_token_id = get_max_token_id(root_dir, task_id, n_targets, fold_id)
+        max_token_id = get_max_token_id(root_dir, task_id, n_targets)
 
         if split is 'validation':
             filename = filename.parent / (filename.name + '.val')
