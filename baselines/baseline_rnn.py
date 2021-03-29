@@ -15,6 +15,7 @@ treated as in a classification problem.
 
 import torch
 import torch.nn as nn
+# noinspection PyPep8Naming
 from torch.nn import functional as F
 
 
