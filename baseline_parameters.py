@@ -11,7 +11,7 @@ def get_default_parameters():
                   'batch_size': 100,
                   'max_iters': 1000,
                   'root_dir': 'babi_data',
-                  'n_train_to_try': [0]}
+                  'n_train_to_try': [950]}
 
     return parameters
 
