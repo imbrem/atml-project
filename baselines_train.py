@@ -116,7 +116,7 @@ def train(model, train_loader, val_loader, params, run_desc):
 
 def evaluate(model, loader):
     model.eval()
-    loss = 0.
+    total_loss = 0.
     total = 0.
     correct = 0.
     for sequences, targets in loader:
@@ -124,11 +124,11 @@ def evaluate(model, loader):
 
         outputs, _ = model(sequences)
         loss = criterion(outputs.permute(0, 2, 1), targets)
-        loss += loss.item()
+        total_loss += loss.item()
         correct += (outputs.argmax(dim=-1).eq(targets)).sum()
         total += len(targets)
 
-    mean_loss = loss / len(loader)
+    mean_loss = total_loss / len(loader)
     acc = correct / total
     return mean_loss, acc
 
