@@ -42,7 +42,7 @@ class BaselineLSTM(nn.Module):
             hidden: [batch, num_layers=1, hidden_size]
         """
         output, hidden = self.lstm_layer(sequences)
-        return output[:, -self.n_targets, :], hidden
+        return output[:, -self.n_targets:, :], hidden
 
     def reset_parameters(self):
         self.lstm_layer.reset_parameters()
