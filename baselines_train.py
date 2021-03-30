@@ -102,6 +102,11 @@ def train(model, train_loader, val_loader, params, run_desc):
             wandb.save(checkpoint)
             best_train_loss, best_val_loss = mean_train_loss, mean_val_loss
             best_train_acc, best_val_acc = train_acc, val_acc
+            print('{} train_loss_{}: {}'.format(epoch, run_desc,
+                                                mean_train_loss))
+            print('{} val_loss_{}: {}'.format(epoch, run_desc, mean_val_loss))
+            print('{} train_acc_{}: {}'.format(epoch, run_desc, train_acc))
+            print('{} val_acc_{}: {}'.format(epoch, run_desc, val_acc))
 
         epoch += 1
 
@@ -130,7 +135,7 @@ def evaluate(model, loader):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--task_id', choices=[4, 15, 16, 18, 19])
+    parser.add_argument('--task_id', type=int, choices=[4, 15, 16, 18, 19])
     parser.add_argument('--model', help="RNN/LSTM", choices=['rnn', 'lstm'])
     args = parser.parse_args()
 
@@ -189,27 +194,47 @@ if __name__ == '__main__':
             wandb.run.summary['final_val_acc_{}'.format(run_desc)] = \
                 fold_performance[3]
             fold_performances.append(fold_performance)
+            print(
+                'final_train_loss_{}: {}'.format(run_desc, fold_performance[0]))
+            print('final_val_loss_{}: {}'.format(run_desc, fold_performance[1]))
+            print(
+                'final_train_acc_{}: {}'.format(run_desc, fold_performance[2]))
+            print('final_val_acc_{}: {}\n'.format(run_desc, fold_performance[
+                3]))
 
             test_loss, test_acc = evaluate(model, test_loader)
-            wandb.run.summary['test_loss_{}'.format(run_desc)] = \
-                test_loss[0]
-            wandb.run.summary['test_acc_{}'.format(run_desc)] = \
-                test_acc[2]
+            wandb.run.summary['test_loss_{}'.format(run_desc)] = test_loss
+            wandb.run.summary['test_acc_{}'.format(run_desc)] = test_acc
             fold_test_performances.append([test_loss, test_acc])
+            print('test_loss_{}: {}'.format(run_desc, test_loss))
+            print('test_acc_{}: {}\n'.format(run_desc, test_acc))
 
         final_performances = list(
             torch.tensor(fold_performances).mean(dim=0).numpy())
         wandb.run.summary['avg_train_loss_{}'.format(n_train)] = \
             final_performances[0]
-        wandb.run.summary['avg_val_loss_{}'.format(n_train)] = final_performances[1]
+        wandb.run.summary['avg_val_loss_{}'.format(n_train)] = \
+            final_performances[1]
         wandb.run.summary['avg_train_acc_{}'.format(n_train)] = \
             final_performances[2]
         wandb.run.summary['avg_val_acc_{}'.format(n_train)] = \
             final_performances[3]
+        print(
+            'avg_train_loss_{}: {}'.format(n_train, final_performances[0]))
+        print(
+            'avg_val_loss_{}: {}'.format(n_train, final_performances[1]))
+        print(
+            'avg_train_acc_{}: {}'.format(n_train, final_performances[2]))
+        print(
+            'avg_val_acc_{}: {}\n'.format(n_train, final_performances[3]))
 
         final_test_performances = list(torch.tensor(
             fold_test_performances).mean(dim=0).numpy())
         wandb.run.summary['avg_test_loss_{}'.format(n_train)] = \
-            final_performances[0]
+            final_test_performances[0]
         wandb.run.summary['avg_test_acc_{}'.format(n_train)] = \
-            final_performances[1]
+            final_test_performances[1]
+        print(
+            'avg_test_loss_{}: {}'.format(n_train, final_test_performances[0]))
+        print(
+            'avg_test_acc_{}: {}\n'.format(n_train, final_test_performances[1]))
