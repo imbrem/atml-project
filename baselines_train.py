@@ -15,7 +15,7 @@ import baseline_parameters
 import torch
 import argparse
 import wandb
-from datetime import datetime
+import os
 
 wandb.init(project='ggsnn-rnn-baselines')
 
@@ -51,13 +51,17 @@ def get_loaders(params, fold_id, n_train):
     return train_loader, val_loader, test_loader
 
 
-def train(model, train_loader, val_loader, iters, run_desc):
+def train(model, train_loader, val_loader, params, run_desc):
     """ Training procedure for the given number of iterations. """
-    mean_train_loss, mean_val_loss, train_acc, val_acc = 0., 0., 0., 0.
+    best_val_loss = None
+    best_train_loss, best_train_acc, best_val_acc = 0., 0., 0.
+    checkpoint = 'model_{}.pt'.format(run_desc)
 
     model.train()
 
     epoch = 0
+
+    iters = params['max_iters'] / params['batch_size']
     for _ in range(iters):
         train_loss = 0
         train_total = 0.
@@ -106,10 +110,19 @@ def train(model, train_loader, val_loader, iters, run_desc):
                    'train_acc_{}'.format(run_desc): train_acc,
                    'val_acc_{}'.format(run_desc): val_acc})
 
+        if best_val_loss is None or mean_val_loss < best_val_loss:
+            torch.save(model.state_dict(), os.path.join(wandb.run.dir,
+                                                        checkpoint))
+            wandb.save(checkpoint)
+            best_val_loss = mean_val_loss
+            best_train_loss = mean_train_loss
+            best_train_acc = train_acc
+            best_val_acc = val_acc
+
         epoch += 1
 
-    wandb.save('model_{}.h5'.format(run_desc))
-    return mean_train_loss, mean_val_loss, train_acc, val_acc
+    model.load_state_dict(torch.load(os.path.join(wandb.run.dir, checkpoint)))
+    return model, (best_train_loss, best_val_loss, best_train_acc, best_val_acc)
 
 
 if __name__ == '__main__':
@@ -143,13 +156,11 @@ if __name__ == '__main__':
             wandb.config.update(params)
             wandb.log({'n_parameters': model.count_parameters()})
 
-            run_desc = 'fold_{}_n_train_{}'.format(fold_id, n_train)
-            wandb.run.name = '{}_task_{}'.format(model_type, task_id) + run_desc
+            run_desc = '{}_fold_{}_n_train_{}'.format(model_type, fold_id,
+                                                      n_train)
+            wandb.run.name = 'task_{}'.format(task_id) + run_desc
 
             wandb.run.save()
-            early_stopping_checkpoint = '{}_{}_state_dict.pt'.format(
-                datetime.now().strftime("%Y-%m-%d_%H:%M:%S"),
-                wandb.run.name)
 
             train_loader, val_loader, test_loader = get_loaders(params,
                                                                 fold_id,
@@ -159,23 +170,24 @@ if __name__ == '__main__':
                                          lr=params['learning_rate'])
             criterion = nn.CrossEntropyLoss()
 
-            iters = params['max_iters'] / params['batch_size']
-            fold_performance = train(model, train_loader, val_loader, iters,
-                                     run_desc)
-            wandb.log({'final_train_loss_{}'.format(run_desc):
-                           fold_performance[0],
-                       'final_val_loss_{}'.format(run_desc):
-                           fold_performance[1],
-                       'final_train_acc_{}'.format(run_desc):
-                           fold_performance[2],
-                       'final_val_acc_{}'.format(run_desc):
-                           fold_performance[3]})
+            model, fold_performance = train(model, train_loader, val_loader,
+                                            params,
+                                            run_desc)
+            wandb.run.summary['final_train_loss_{}'.format(run_desc)] = \
+                fold_performance[0]
+            wandb.run.summary['final_val_loss_{}'.format(run_desc)] = \
+                fold_performance[1]
+            wandb.run.summary['final_train_acc_{}'.format(run_desc)] = \
+                fold_performance[2]
+            wandb.run.summary['final_val_acc_{}'.format(run_desc)] = \
+                fold_performance[3]
 
             fold_performances.append(fold_performance)
 
+
         final_performances = list(
             torch.tensor(fold_performances).mean(dim=0).numpy())
-        wandb.log({"final_train_loss": fold_performances[0],
-                   "final_val_loss": fold_performances[1],
-                   "final_train_acc": fold_performances[2],
-                   "final_val_acc": fold_performances[3]})
+        wandb.run.summary['avg_train_loss'] = final_performances[0]
+        wandb.run.summary['avg_val_loss'] = final_performances[1]
+        wandb.run.summary['avg_train_acc'] = final_performances[2]
+        wandb.run.summary['avg_val_acc'] = final_performances[3]
