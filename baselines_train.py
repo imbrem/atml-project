@@ -84,26 +84,12 @@ def train(model, train_loader, val_loader, params, run_desc):
             torch.nn.utils.clip_grad_value_(model.parameters(), 5)
             optimizer.step()
 
+        mean_train_loss = train_loss / len(train_loader)
+        train_acc = train_correct / train_total
+
         # Validation
         with torch.set_grad_enabled(False):
-            val_loss = 0
-            val_total = 0.
-            val_correct = 0.
-            for val_sequences, val_targets in val_loader:
-                val_sequences, val_targets = val_sequences.to(
-                    device), val_targets.to(
-                    device)
-
-                outputs, _ = model(val_sequences)
-                loss = criterion(outputs.permute(0, 2, 1), val_targets)
-                val_loss += loss.item()
-                val_correct += (outputs.argmax(dim=-1).eq(val_targets)).sum()
-                val_total += len(val_targets)
-
-        mean_train_loss = train_loss / len(train_loader)
-        mean_val_loss = val_loss / len(val_loader)
-        train_acc = train_correct / train_total
-        val_acc = val_correct / val_total
+            mean_val_loss, val_acc = evaluate(model, val_loader)
 
         wandb.log({'train_loss_{}'.format(run_desc): mean_train_loss,
                    'val_loss_{}'.format(run_desc): mean_val_loss,
@@ -114,15 +100,32 @@ def train(model, train_loader, val_loader, params, run_desc):
             torch.save(model.state_dict(), os.path.join(wandb.run.dir,
                                                         checkpoint))
             wandb.save(checkpoint)
-            best_val_loss = mean_val_loss
-            best_train_loss = mean_train_loss
-            best_train_acc = train_acc
-            best_val_acc = val_acc
+            best_train_loss, best_val_loss = mean_train_loss, mean_val_loss
+            best_train_acc, best_val_acc = train_acc, val_acc
 
         epoch += 1
 
     model.load_state_dict(torch.load(os.path.join(wandb.run.dir, checkpoint)))
-    return model, (best_train_loss, best_val_loss, best_train_acc, best_val_acc)
+    return model, [best_train_loss, best_val_loss, best_train_acc, best_val_acc]
+
+
+def evaluate(model, loader):
+    model.eval()
+    loss = 0.
+    total = 0.
+    correct = 0.
+    for sequences, targets in loader:
+        sequences, targets = sequences.to(device), targets.to(device)
+
+        outputs, _ = model(sequences)
+        loss = criterion(outputs.permute(0, 2, 1), targets)
+        loss += loss.item()
+        correct += (outputs.argmax(dim=-1).eq(targets)).sum()
+        total += len(targets)
+
+    mean_loss = loss / len(loader)
+    acc = correct / total
+    return mean_loss, acc
 
 
 if __name__ == '__main__':
@@ -141,6 +144,7 @@ if __name__ == '__main__':
 
     for n_train in n_train_to_try:
         fold_performances = []
+        fold_test_performances = []
         for fold_id in range(1, N_FOLDS + 1):
             if model_type is 'rnn':
                 model = BaselineRNN(input_size=params['max_token_id'],
@@ -170,9 +174,12 @@ if __name__ == '__main__':
                                          lr=params['learning_rate'])
             criterion = nn.CrossEntropyLoss()
 
+            # Train the model and obtain best train and validation performance
             model, fold_performance = train(model, train_loader, val_loader,
                                             params,
                                             run_desc)
+
+            # Logging train and validation performance for fold
             wandb.run.summary['final_train_loss_{}'.format(run_desc)] = \
                 fold_performance[0]
             wandb.run.summary['final_val_loss_{}'.format(run_desc)] = \
@@ -181,13 +188,28 @@ if __name__ == '__main__':
                 fold_performance[2]
             wandb.run.summary['final_val_acc_{}'.format(run_desc)] = \
                 fold_performance[3]
-
             fold_performances.append(fold_performance)
 
+            test_loss, test_acc = evaluate(model, test_loader)
+            wandb.run.summary['test_loss_{}'.format(run_desc)] = \
+                test_loss[0]
+            wandb.run.summary['test_acc_{}'.format(run_desc)] = \
+                test_acc[2]
+            fold_test_performances.append([test_loss, test_acc])
 
         final_performances = list(
             torch.tensor(fold_performances).mean(dim=0).numpy())
-        wandb.run.summary['avg_train_loss'] = final_performances[0]
-        wandb.run.summary['avg_val_loss'] = final_performances[1]
-        wandb.run.summary['avg_train_acc'] = final_performances[2]
-        wandb.run.summary['avg_val_acc'] = final_performances[3]
+        wandb.run.summary['avg_train_loss_{}'.format(n_train)] = \
+            final_performances[0]
+        wandb.run.summary['avg_val_loss_{}'.format(n_train)] = final_performances[1]
+        wandb.run.summary['avg_train_acc_{}'.format(n_train)] = \
+            final_performances[2]
+        wandb.run.summary['avg_val_acc_{}'.format(n_train)] = \
+            final_performances[3]
+
+        final_test_performances = list(torch.tensor(
+            fold_test_performances).mean(dim=0).numpy())
+        wandb.run.summary['avg_test_loss_{}'.format(n_train)] = \
+            final_performances[0]
+        wandb.run.summary['avg_test_acc_{}'.format(n_train)] = \
+            final_performances[1]
