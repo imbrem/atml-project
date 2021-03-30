@@ -61,7 +61,7 @@ def train(model, train_loader, val_loader, params, run_desc):
 
     epoch = 0
 
-    iters = params['max_iters'] / params['batch_size']
+    iters = params['max_iters'] // params['batch_size'] + 1
     for _ in range(iters):
         train_loss = 0
         train_total = 0.
@@ -136,7 +136,8 @@ def evaluate(model, loader):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--task_id', type=int, choices=[4, 15, 16, 18, 19])
-    parser.add_argument('--model', help="RNN/LSTM", choices=['rnn', 'lstm'])
+    parser.add_argument('--model', type=str, help="RNN/LSTM", choices=['rnn',
+                                                                       'lstm'])
     args = parser.parse_args()
 
     model_type = args.model
@@ -151,16 +152,16 @@ if __name__ == '__main__':
         fold_performances = []
         fold_test_performances = []
         for fold_id in range(1, N_FOLDS + 1):
-            if model_type is 'rnn':
+            model = None
+            if model_type == 'rnn':
                 model = BaselineRNN(input_size=params['max_token_id'],
                                     hidden_size=params['hidden_size'],
                                     n_targets=params['n_targets'])
-            else:  # 'lstm'
+            elif model_type == 'lstm':
                 model = BaselineLSTM(input_size=params['max_token_id'],
                                      hidden_size=params['hidden_size'],
                                      n_targets=params['n_targets'])
 
-            wandb.run.save()
             wandb.watch(model)
             wandb.config.update(params)
             wandb.log({'n_parameters': model.count_parameters()})
@@ -168,8 +169,6 @@ if __name__ == '__main__':
             run_desc = '{}_fold_{}_n_train_{}'.format(model_type, fold_id,
                                                       n_train)
             wandb.run.name = 'task_{}'.format(task_id) + run_desc
-
-            wandb.run.save()
 
             train_loader, val_loader, test_loader = get_loaders(params,
                                                                 fold_id,
