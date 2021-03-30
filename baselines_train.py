@@ -77,7 +77,8 @@ def train(model, train_loader, val_loader, params, run_desc):
             loss.backward()
 
             train_loss += loss.item()
-            train_correct += (outputs.argmax(dim=-1).eq(targets)).sum()
+            train_correct += (outputs.argmax(dim=-1).eq(targets)).all(
+                dim=1).sum()
             train_total += len(targets)
 
             # Gradient clipping as per original implementation.
@@ -85,6 +86,7 @@ def train(model, train_loader, val_loader, params, run_desc):
             optimizer.step()
 
         mean_train_loss = train_loss / len(train_loader)
+        assert(train_correct <= train_total)
         train_acc = train_correct / train_total
 
         # Validation
@@ -125,11 +127,12 @@ def evaluate(model, loader):
         outputs, _ = model(sequences)
         loss = criterion(outputs.permute(0, 2, 1), targets)
         total_loss += loss.item()
-        correct += (outputs.argmax(dim=-1).eq(targets)).sum()
+        correct += (outputs.argmax(dim=-1).eq(targets)).all(dim=1).sum()
         total += len(targets)
 
     mean_loss = total_loss / len(loader)
     acc = correct / total
+    assert(correct <= total)
     return mean_loss, acc
 
 
