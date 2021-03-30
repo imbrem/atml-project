@@ -108,6 +108,7 @@ def train(model, train_loader, val_loader, iters, run_desc):
 
         epoch += 1
 
+    wandb.save('model_{}.h5'.format(run_desc))
     return mean_train_loss, mean_val_loss, train_acc, val_acc
 
 
@@ -139,9 +140,9 @@ if __name__ == '__main__':
 
             wandb.run.save()
             wandb.watch(model)
+            wandb.config.update(params)
             wandb.log({'n_parameters': model.count_parameters()})
 
-            wandb.config.update(params)
             run_desc = 'fold_{}_n_train_{}'.format(fold_id, n_train)
             wandb.run.name = '{}_task_{}'.format(model_type, task_id) + run_desc
 
@@ -159,7 +160,6 @@ if __name__ == '__main__':
             criterion = nn.CrossEntropyLoss()
 
             iters = params['max_iters'] / params['batch_size']
-
             fold_performance = train(model, train_loader, val_loader, iters,
                                      run_desc)
             wandb.log({'final_train_loss_{}'.format(run_desc):
