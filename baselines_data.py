@@ -71,9 +71,10 @@ def transform_sequence_list(sequence_list, max_token_id):
 
 def transform_target_list(target_list, n_targets, max_token_id):
     # Append special end of sequence symbol when the target is a sequence.
-    targets = torch.stack(target_list) - 1 # [n_seq x n_targets]
+    targets = torch.stack(target_list) - 1  # [n_seq x n_targets]
     if n_targets > 1:
-        eos_tensor = torch.ones(targets.size(0), 1) * (max_token_id - 1)
+        eos_tensor = torch.ones((targets.size(0), 1), dtype=int) * (
+                max_token_id - 1)
         targets = torch.cat((targets, eos_tensor),
                             dim=1)  # [n_seq x (n_targets + 1)]
 
@@ -95,7 +96,6 @@ def prepare_sequences_and_targets(token_lists, n_targets, max_token_id):
     return sequences, targets
 
 
-# TODO use custom number of training/validation examples
 class BabiRNNDataset(Dataset):
     """ Loads bAbI dataset for RNN.
 
