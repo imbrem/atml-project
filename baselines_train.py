@@ -58,13 +58,12 @@ def train(model, train_loader, val_loader, params, run_desc,
     best_train_loss, best_train_acc, best_val_acc = 0., 0., 0.
     checkpoint = 'model_{}.pt'.format(run_desc)
 
-    model.train()
-
     epochs = params['max_iters'] // params[
         'batch_size'] + 1 if patience == 0 else 0
     epoch = 0
     iters = 0
     while epoch < epochs or 0 <= iters < patience:
+        model.train()
         train_loss = 0
         train_total = 0.
         train_correct = 0.
