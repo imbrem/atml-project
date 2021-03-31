@@ -145,12 +145,16 @@ if __name__ == '__main__':
     parser.add_argument('--task_id', type=int, choices=[4, 15, 16, 18, 19])
     parser.add_argument('--model', type=str, help="RNN/LSTM", choices=['rnn',
                                                                        'lstm'])
+    parser.add_argument('--all_data', type=bool, default=False)
+    parser.add_argument('--patience', type=int, default=250)
     args = parser.parse_args()
 
     model_type = args.model
     task_id = args.task_id
+    all_data = args.all_data
+    patience = args.patience
     params = baseline_parameters.get_parameters_for_task(model_type, task_id)
-    n_train_to_try = params['n_train_to_try']
+    n_train_to_try = params['n_train_to_try'] if not all_data else [0]
 
     torch.manual_seed(SEED)
     torch.set_num_threads(N_THREADS)
@@ -189,7 +193,7 @@ if __name__ == '__main__':
             model, fold_performance = train(model, train_loader, val_loader,
                                             params,
                                             run_desc,
-                                            patience=1000)
+                                            patience)
 
             # Logging train and validation performance for fold
             wandb.run.summary['final_train_loss_{}'.format(run_desc)] = \
