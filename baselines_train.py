@@ -51,7 +51,8 @@ def get_loaders(params, fold_id, n_train):
     return train_loader, val_loader, test_loader
 
 
-def train(model, train_loader, val_loader, params, run_desc):
+def train(model, train_loader, val_loader, params, run_desc,
+          patience=0, delta=0.005):
     """ Training procedure for the given number of iterations. """
     best_val_loss = None
     best_train_loss, best_train_acc, best_val_acc = 0., 0., 0.
@@ -59,10 +60,11 @@ def train(model, train_loader, val_loader, params, run_desc):
 
     model.train()
 
+    epochs = params['max_iters'] // params[
+        'batch_size'] + 1 if patience == 0 else 0
     epoch = 0
-
-    iters = params['max_iters'] // params['batch_size'] + 1
-    for _ in range(iters):
+    iters = 0
+    while epoch < epochs or 0 <= iters < patience:
         train_loss = 0
         train_total = 0.
         train_correct = 0.
@@ -86,7 +88,7 @@ def train(model, train_loader, val_loader, params, run_desc):
             optimizer.step()
 
         mean_train_loss = train_loss / len(train_loader)
-        assert(train_correct <= train_total)
+        assert (train_correct <= train_total)
         train_acc = train_correct / train_total
 
         # Validation
@@ -98,7 +100,8 @@ def train(model, train_loader, val_loader, params, run_desc):
                    'train_acc_{}'.format(run_desc): train_acc,
                    'val_acc_{}'.format(run_desc): val_acc})
 
-        if best_val_loss is None or mean_val_loss < best_val_loss:
+        if best_val_loss is None or mean_val_loss < best_val_loss - delta:
+            iters = 0
             torch.save(model.state_dict(), os.path.join(wandb.run.dir,
                                                         checkpoint))
             wandb.save(checkpoint)
@@ -109,7 +112,8 @@ def train(model, train_loader, val_loader, params, run_desc):
             print('{} val_loss_{}: {}'.format(epoch, run_desc, mean_val_loss))
             print('{} train_acc_{}: {}'.format(epoch, run_desc, train_acc))
             print('{} val_acc_{}: {}'.format(epoch, run_desc, val_acc))
-
+        else:
+            iters += 1
         epoch += 1
 
     model.load_state_dict(torch.load(os.path.join(wandb.run.dir, checkpoint)))
@@ -132,7 +136,7 @@ def evaluate(model, loader):
 
     mean_loss = total_loss / len(loader)
     acc = correct / total
-    assert(correct <= total)
+    assert (correct <= total)
     return mean_loss, acc
 
 
@@ -184,7 +188,8 @@ if __name__ == '__main__':
             # Train the model and obtain best train and validation performance
             model, fold_performance = train(model, train_loader, val_loader,
                                             params,
-                                            run_desc)
+                                            run_desc,
+                                            patience=1000)
 
             # Logging train and validation performance for fold
             wandb.run.summary['final_train_loss_{}'.format(run_desc)] = \
