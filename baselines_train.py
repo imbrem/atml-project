@@ -230,13 +230,20 @@ if __name__ == '__main__':
         print(
             'avg_val_acc_{}: {}\n'.format(n_train, final_performances[3]))
 
-        final_test_performances = list(torch.tensor(
+        final_test_means = list(torch.tensor(
             fold_test_performances).mean(dim=0).numpy())
-        wandb.run.summary['avg_test_loss_{}'.format(n_train)] = \
-            final_test_performances[0]
-        wandb.run.summary['avg_test_acc_{}'.format(n_train)] = \
-            final_test_performances[1]
+        final_test_stds = list(torch.tensor(
+            fold_test_performances).std(dim=0).numpy())
+        wandb.run.summary['test_loss_mean_{}'.format(n_train)] = \
+            final_test_means[0]
+        wandb.run.summary['test_acc_mean_{}'.format(n_train)] = \
+            final_test_means[1]
+        wandb.run.summary['test_loss_std_{}'.format(n_train)] = \
+            final_test_stds[0]
+        wandb.run.summary['test_acc_std_{}'.format(n_train)] = \
+            final_test_stds[1]
+
         print(
-            'avg_test_loss_{}: {}'.format(n_train, final_test_performances[0]))
+            'avg_test_loss_{}: {}'.format(n_train, final_test_means[0]))
         print(
-            'avg_test_acc_{}: {}\n'.format(n_train, final_test_performances[1]))
+            'avg_test_acc_{}: {}\n'.format(n_train, final_test_means[1]))
