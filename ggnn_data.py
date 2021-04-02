@@ -73,15 +73,6 @@ def find_max_task_id(data_list):
     return max_node_id
 
 
-# def split_set(data_list):
-#     # This is a horrible piece of code and should never be used
-#     n_examples = len(data_list)
-#     idx = range(n_examples)
-#     train = idx[:50]
-#     val = idx[-50:]
-#     return np.array(data_list, dtype=object)[train], np.array(data_list,
-#     dtype=object)[val]
-
 def split_train_and_val(data_list):
     n_examples = len(data_list)
     split_point = int(n_examples * 0.95)
@@ -302,6 +293,55 @@ class BabiSequentialGraphDataset:
 
     def __getitem__(self, idx):
         return self.graphs[idx], self.graphs[idx]
+
+
+def get_data_loaders(params, fold_id, n_train, dataset='sequential_graph'):
+    """
+    Args:
+        params (dict): dictionary of parameters (specified in
+        ggnn_parameters.py)
+        fold_id (int): fold id.
+        n_train (int): how many training examples to use (train_examples)
+        dataset (str): one of 'babi_graph', 'sequential_graph'
+    """
+    if dataset == 'sequential_graph':
+        train_dataset = BabiSequentialGraphDataset(params['root_dir'], fold_id,
+                                                   params['task_id'],
+                                                   params['n_targets'],
+                                                   split='train',
+                                                   n_train=n_train)
+        val_dataset = BabiSequentialGraphDataset(params['root_dir'], fold_id,
+                                                 params['task_id'],
+                                                 params['n_targets'],
+                                                 split='validation')
+        test_dataset = BabiSequentialGraphDataset(params['root_dir'], fold_id,
+                                                 params['task_id'],
+                                                 params['n_targets'],
+                                                 split='test')
+    elif dataset == 'babi_graph':
+        train_dataset = BabiGraphDataset(params['root_dir'], fold_id,
+                                         params['task_id'], params['n_targets'],
+                                         split='train', n_train=n_train)
+        val_dataset = BabiGraphDataset(params['root_dir'], fold_id,
+                                       params['task_id'], params['n_targets'],
+                                       split='validation', n_train=n_train)
+        test_dataset = BabiGraphDataset(params['root_dir'], fold_id,
+                                       params['task_id'], params['n_targets'],
+                                       split='test', n_train=n_train)
+    else:
+        raise NotImplementedError('Dataset not supported')
+
+    train_loader = DataLoader(train_dataset,
+                              batch_size=params['batch_size'],
+                              shuffle=True)
+    val_loader = DataLoader(val_dataset,
+                            batch_size=params['batch_size'],
+                            shuffle=True)
+    test_loader = DataLoader(test_dataset,
+                            batch_size=params['batch_size'],
+                            shuffle=True)
+
+    return train_loader, val_loader, test_loader
 
 
 if __name__ == "__main__":
