@@ -8,6 +8,7 @@ https://github.com/chingyaoc/ggnn.pytorch/blob/master/utils/data/dataset.py
 https://github.com/chingyaoc/ggnn.pytorch/blob/master/utils/data/dataloader.py
 """
 
+import os
 import numpy as np
 import torch
 from torch_geometric.data import Data
@@ -70,13 +71,18 @@ def find_max_task_id(data_list):
     return max_node_id
 
 
-def split_set(data_list):
+# def split_set(data_list):
+#     # This is a horrible piece of code and should never be used
+#     n_examples = len(data_list)
+#     idx = range(n_examples)
+#     train = idx[:50]
+#     val = idx[-50:]
+#     return np.array(data_list, dtype=object)[train], np.array(data_list, dtype=object)[val]
+
+def split_train_and_val(data_list):
     n_examples = len(data_list)
-    idx = range(n_examples)
-    train = idx[:50]
-    val = idx[-50:]
-    return np.array(data_list, dtype=object)[train], \
-           np.array(data_list, dtype=object)[val]
+    split_point = int(n_examples * 0.95)
+    return np.array(data_list[:split_point], dtype=object), np.array(data_list[split_point:], dtype=object)
 
 
 def data_convert(data_list, n_annotation_dim):
@@ -134,7 +140,7 @@ def create_pg_graph(datapoint, n_edge_types):
     for edge_type in full_edge_type_indices.numpy().tolist():
         edge_attr[tuple(edge_type)] = 1
 
-    y = torch.FloatTensor([datapoint[2] - 1]).view(1, 1)
+    y = torch.LongTensor([datapoint[2] - 1]).view(1)
     return Data(x=x, edge_index=edge_index, edge_attr=edge_attr, y=y)
 
 
@@ -152,20 +158,27 @@ class bAbIDataset:
     Load bAbI tasks for GGNN
     """
 
-    def __init__(self, path, task_id, is_train):
+    def __init__(self, path, question_id, train_val_test_type, train_examples=None):
         all_data = load_graphs_from_file(path)
         self.n_edge_types = find_max_edge_id(all_data)
         self.n_tasks = find_max_task_id(all_data)
         self.n_node = find_max_node_id(all_data)
 
-        all_task_train_data, all_task_val_data = split_set(all_data)
+        all_task_train_data, all_task_val_data = split_train_and_val(all_data)
 
-        if is_train:
+        if train_val_test_type == "train":
             all_task_train_data = data_convert(all_task_train_data, 1)
-            self.data = all_task_train_data[task_id]
-        else:
+            self.data = all_task_train_data[question_id]
+            if len(self.data) > train_examples:
+                self.data = self.data[:train_examples]
+        elif train_val_test_type == "val":
             all_task_val_data = data_convert(all_task_val_data, 1)
-            self.data = all_task_val_data[task_id]
+            self.data = all_task_val_data[question_id]
+        elif train_val_test_type == "test":
+            all_task_test_data = data_convert(all_data, 1)
+            self.data = all_task_test_data[question_id]
+        else:
+            raise AssertionError
 
     def __getitem__(self, index):
         return create_pg_graph(self.data[index], n_edge_types=self.n_edge_types)
@@ -225,6 +238,17 @@ class BabiSequentialGraphDataset:
         return self.graphs[idx], self.graphs[idx]
 
 
+def get_train_val_test_datasets(babi_data_path, task_id, question_id, train_examples):
+    train_dataset = bAbIDataset(os.path.join(babi_data_path, "processed_1", "train", "{}_graphs.txt".format(task_id)),
+                       question_id, "train", train_examples)
+    return train_dataset, \
+        bAbIDataset(os.path.join(babi_data_path, "processed_1", "train", "{}_graphs.txt".format(task_id)),
+                    question_id, "val"), \
+        bAbIDataset(os.path.join(babi_data_path, "processed_1", "test", "{}_graphs.txt".format(task_id)),
+                    question_id, "test"), \
+        train_dataset.n_edge_types * 2
+
+
 if __name__ == "__main__":
     from torch_geometric.data import DataLoader
 
@@ -232,4 +256,5 @@ if __name__ == "__main__":
     train_dataset = bAbIDataset(dataroot, 0, True)
     loader = DataLoader(train_dataset, batch_size=2)
     batch0 = next(iter(loader))
-    print(batch0.x, batch0.edge_index, batch0.batch, batch0.edge_attr, batch0.y)
+    print(batch0.x.size(), batch0.edge_attr.size())
+    print(batch0.x, batch0.edge_attr)

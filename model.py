@@ -4,6 +4,17 @@ from torch import nn
 import torch.nn.functional as F
 
 
+def gated_graph_conv_layer(input_size, output_size, num_layers, aggr='add', impl='torch', bias=True, **kwargs):
+    """
+    Construct a gated graph convolutional layer using a given implementation
+    """
+    if impl == 'torch':
+        return torch.geometric.nn.GatedGraphConv(
+            out_channels=input_size, num_layers=num_layers, aggr=aggr, bias=bias, **kwargs)
+    else:
+        raise ValueError(f"Invalid implementation \"{impl}\"")
+
+
 class GlobalGGNN(nn.Module):
     def __init__(self, input_size, output_size, num_layers=32, aggr='add', bias=True, **kwargs):
         super(GlobalGGNN, self).__init__()
