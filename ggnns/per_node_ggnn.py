@@ -3,7 +3,7 @@ import torch
 import torch_geometric
 from torch import nn
 import torch.nn.functional as F
-from typing import Union, List
+from typing import Union, List, Optional
 from base_ggnn import make_ggnn
 from torch.nn import Module
 
@@ -14,8 +14,8 @@ class PerNodeGGNN(Module):
                  output_size: int,
                  num_layers: int,
                  hidden_state: int = 0,
-                 hidden_layers: Union[List[int], int] = [],
-                 linear_activation: Module = nn.ReLU(inplace=True),
+                 hidden_layer: Optional[Module] = None,
+                 batched_hidden_layer: bool = False,
                  padding_mode: str = 'constant',
                  padding_const: int = 0,
                  ggnn_impl: str = 'torch_geometric', **kwargs):
@@ -33,68 +33,40 @@ class PerNodeGGNN(Module):
 
         self.padding_mode = padding_mode
         self.padding_const = padding_const
-        self.per_node_layer = PerNodeLayer(
-            input_size=annotation_size + hidden_state + annotation_size,
-            output_size=output_size,
-            hidden_layers=hidden_layers,
-            linear_activation=linear_activation
-        )
+        self.batched_hidden_layer = batched_hidden_layer
 
-    def forward(self, x, edge_index, **kwargs):
+        if hidden_layer is None:
+            self.hidden_layer = nn.Sequential(
+                nn.Linear(annotation_size + hidden_state +
+                          annotation_size, output_size),
+            )
+        else:
+            self.hidden_layer = hidden_layer
+
+    def forward(self, x, edge_index, batch, **kwargs):
         # Step 1: pad `x` from `annotation_size` to `hidden_state +
         # annotation_size`
         assert x.shape[-1] == self.annotation_size
         x_ggnn = nn.functional.pad(
             x, (0, self.hidden_state), self.padding_mode, self.padding_const)
         assert x_ggnn.shape[-1] == self.annotation_size + \
-               self.hidden_state
+            self.hidden_state
         # Step 2: pass the padded `x` into the GGNN layer
         x_ggnn = self.ggnn_layer(x, edge_index, **kwargs)
         # Step 3: catenate the GGNN output with the original input
         x = torch.cat((x_ggnn, x), -1)
         del x_ggnn
         assert x.shape[-1] == self.annotation_size + \
-               self.hidden_state + self.annotation_size
+            self.hidden_state + self.annotation_size
         # Step 4: pass this through the per-node linear adapter
-        x = self.per_node_layer(x)
-
-        return x
+        if self.batched_hidden_layer:
+            return self.hidden_layer(x, batch=batch, **kwargs)
+        else:
+            return self.hidden_layer(x, **kwargs)
 
     def reset_parameters(self):
         self.ggnn_layer.reset_parameters()
-        self.per_node_layer.reset_parameters()
-
-
-class PerNodeLayer(nn.Module):
-    def __init__(self,
-                 input_size: int,
-                 output_size: int,
-                 hidden_layers: Union[List[int], int] = [],
-                 linear_activation=nn.ReLU(inplace=True)):
-        super(PerNodeLayer, self).__init__()
-
-        self.linear_activation = linear_activation
-        self.input_size = input_size
-        self.output_size = output_size
-
-        linear_layers = []
-        for size in hidden_layers:
-            linear_layers.append(nn.Linear(input_size, size))
-            input_size = size
-        linear_layers.append(nn.Linear(input_size, output_size))
-
-        self.linear_layers = nn.ModuleList(linear_layers)
-
-    def forward(self, x):
-        for layer in self.linear_layers:
-            x = layer(x)
-            x = self.linear_activation(x)
-
-        return x
-
-    def reset_parameters(self):
-        for layer in self.linear_layers:
-            layer.reset_parameters()
+        self.hidden_layer.reset_parameters()
 
 
 if __name__ == "__main__":
