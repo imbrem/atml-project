@@ -77,12 +77,14 @@ def find_max_task_id(data_list):
 #     idx = range(n_examples)
 #     train = idx[:50]
 #     val = idx[-50:]
-#     return np.array(data_list, dtype=object)[train], np.array(data_list, dtype=object)[val]
+#     return np.array(data_list, dtype=object)[train], np.array(data_list,
+#     dtype=object)[val]
 
 def split_train_and_val(data_list):
     n_examples = len(data_list)
     split_point = int(n_examples * 0.95)
-    return np.array(data_list[:split_point], dtype=object), np.array(data_list[split_point:], dtype=object)
+    return np.array(data_list[:split_point], dtype=object), np.array(
+        data_list[split_point:], dtype=object)
 
 
 def data_convert(data_list, n_annotation_dim):
@@ -158,7 +160,8 @@ class bAbIDataset:
     Load bAbI tasks for GGNN
     """
 
-    def __init__(self, path, question_id, train_val_test_type, train_examples=None):
+    def __init__(self, path, question_id, train_val_test_type,
+                 train_examples=None):
         all_data = load_graphs_from_file(path)
         self.n_edge_types = find_max_edge_id(all_data)
         self.n_tasks = find_max_task_id(all_data)
@@ -238,15 +241,20 @@ class BabiSequentialGraphDataset:
         return self.graphs[idx], self.graphs[idx]
 
 
-def get_train_val_test_datasets(babi_data_path, task_id, question_id, train_examples):
-    train_dataset = bAbIDataset(os.path.join(babi_data_path, "processed_1", "train", "{}_graphs.txt".format(task_id)),
-                       question_id, "train", train_examples)
+def get_train_val_test_datasets(babi_data_path, task_id, question_id,
+                                train_examples):
+    train_dataset = bAbIDataset(
+        os.path.join(babi_data_path, "processed_1", "train",
+                     "{}_graphs.txt".format(task_id)),
+        question_id, "train", train_examples)
     return train_dataset, \
-        bAbIDataset(os.path.join(babi_data_path, "processed_1", "train", "{}_graphs.txt".format(task_id)),
-                    question_id, "val"), \
-        bAbIDataset(os.path.join(babi_data_path, "processed_1", "test", "{}_graphs.txt".format(task_id)),
-                    question_id, "test"), \
-        train_dataset.n_edge_types * 2
+           bAbIDataset(os.path.join(babi_data_path, "processed_1", "train",
+                                    "{}_graphs.txt".format(task_id)),
+                       question_id, "val"), \
+           bAbIDataset(os.path.join(babi_data_path, "processed_1", "test",
+                                    "{}_graphs.txt".format(task_id)),
+                       question_id, "test"), \
+           train_dataset.n_edge_types * 2
 
 
 if __name__ == "__main__":
