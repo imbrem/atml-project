@@ -25,7 +25,7 @@ def get_parameters_for_task(model, task_id):
     if task_id == 4:
         parameters['n_train_to_try'] = [50, 100, 250, 500, 950]
         parameters['batch_size'] = 20
-    elif task_id == 5:
+    elif task_id == 15:
         parameters['max_iters'] = 20000 if model is 'rnn' else 5000
     elif task_id == 16:
         parameters['max_iters'] = 20000 if model is 'rnn' else 5000
