@@ -1,18 +1,15 @@
 """
-RNN/LSTM baseline training for the bAbI dataset.
+GGNN training code.
 
 Adapted from Yujia Li,
-https://github.com/yujiali/ggnn/blob/master/babi/babi_rnn_train.lua
-https://github.com/yujiali/ggnn/blob/master/babi/run_rnn_baselines.py
+# TODO ggnn directories
 """
 
-from ggnn_data import BabiSequentialGraphDataset
+from ggnn_data import get_data_loaders
 from ggnns.graph_level_ggnn import GraphLevelGGNN
 from torch import nn
-from torch.utils.data import DataLoader
 import baselines_parameters
 import torch
-import argparse
 import wandb
 import os
 
@@ -25,32 +22,10 @@ N_FOLDS = 10
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 
-def get_train_loaders(params, fold_id, n_train, dataset='sequential_graph'):
-    if dataset == 'sequential_graph':
-        train_dataset = BabiSequentialGraphDataset(params['root_dir'], fold_id,
-                                                   params['task_id'],
-                                                   params['n_targets'],
-                                                   split='train',
-                                                   n_train=n_train)
-        val_dataset = BabiSequentialGraphDataset(params['root_dir'], fold_id,
-                                                 params['task_id'],
-                                                 params['n_targets'],
-                                                 split='validation')
-
-        train_loader = DataLoader(train_dataset,
-                                  batch_size=params['batch_size'],
-                                  shuffle=True)
-        val_loader = DataLoader(val_dataset,
-                                batch_size=params['batch_size'],
-                                shuffle=True)
-
-        return train_loader, val_loader
-    else:
-        raise NotImplementedError('Other datasets not supported.')
-
-
-def train(model, train_loader, val_loader, params, run_desc,
-          patience=0, delta=0.005):
+def train(train_loader, val_loader, model, optimizer,
+          criterion, params,
+          run_desc, patience=0,
+          delta=0.005):
     """ Training procedure for the given number of iterations. """
     best_val_loss = None
     best_train_loss, best_train_acc, best_val_acc = 0., 0., 0.
@@ -61,52 +36,25 @@ def train(model, train_loader, val_loader, params, run_desc,
     epoch = 0
     iters = 0
     while epoch < epochs or 0 <= iters < patience:
-        model.train()
-        train_loss = 0
-        train_total, train_correct = 0., 0.
-        # Training
-        for data in train_loader:  # iterate through batches
-            data = data.to(device)
-            optimizer.zero_grad()
-
-            out = model(data.x, data.edge_index, data.batch)
-
-            loss = criterion(out.permute(0, 2, 1), data.y)
-            loss.backward()
-
-            train_loss += loss.item()
-            train_correct += (out.argmax(dim=-1).eq(data.y)).all(dim=1).sum()
-            train_total += len(data.y)
-
-            # Gradient clipping as per original implementation.
-            torch.nn.utils.clip_grad_value_(model.parameters(), 5)
-            optimizer.step()
-
-        mean_train_loss = train_loss / len(train_loader)
-        assert (train_correct <= train_total)
-        train_acc = train_correct / train_total
+        train_loss, train_accuracy = train_epoch(train_loader, model,
+                                                 optimizer, criterion)
+        wandb.log({'train_loss_{}'.format(run_desc): train_loss,
+                   'train_accuracy_{}'.format(run_desc): train_accuracy},
+                  step=epoch)
 
         # Validation
-        with torch.set_grad_enabled(False):
-            mean_val_loss, val_acc = evaluate(model, val_loader)
+        val_loss, val_accuracy = evaluate(val_loader, model, criterion)
+        wandb.log({'val_loss_{}'.format(run_desc): val_loss,
+                   'val_accuracy_{}'.format(run_desc): val_accuracy},
+                  step=epoch)
 
-        wandb.log({'train_loss_{}'.format(run_desc): mean_train_loss,
-                   'val_loss_{}'.format(run_desc): mean_val_loss,
-                   'train_acc_{}'.format(run_desc): train_acc,
-                   'val_acc_{}'.format(run_desc): val_acc})
-
-        if best_val_loss is None or mean_val_loss < best_val_loss - delta:
+        if best_val_loss is None or val_loss < best_val_loss - delta:
             iters = 0
             torch.save(model.state_dict(), os.path.join(wandb.run.dir,
                                                         checkpoint))
             wandb.save(checkpoint)
-            best_train_loss, best_val_loss = mean_train_loss, mean_val_loss
-            best_train_acc, best_val_acc = train_acc, val_acc
-            # print('{} train_loss_{}: {}'.format(epoch, run_desc,
-            #                                     mean_train_loss))
-            # print('{} val_loss_{}: {}'.format(epoch, run_desc, mean_val_loss))
-            # print('{} train_acc_{}: {}'.format(epoch, run_desc, train_acc))
-            # print('{} val_acc_{}: {}'.format(epoch, run_desc, val_acc))
+            best_train_loss, best_val_loss = train_loss, val_loss
+            best_train_acc, best_val_acc = train_accuracy, val_accuracy
         else:
             iters += 1
         epoch += 1
@@ -115,7 +63,32 @@ def train(model, train_loader, val_loader, params, run_desc,
     return model, [best_train_loss, best_val_loss, best_train_acc, best_val_acc]
 
 
-def evaluate(model, loader):
+def train_epoch(train_loader, model, optimizer, criterion):
+    model.train(),
+    total_loss = 0
+    total_correct, total_examples = 0., 0.
+    for data in train_loader:
+        data = data.to(device)
+        optimizer.zero_grad()
+
+        out = model(x=data.x,
+                    edge_index=data.edge_index,
+                    edge_attr=data.edge_attr,
+                    batch=data.batch)
+
+        loss = criterion(out.permute(0, 2, 1), data.y)
+        loss.backward()
+
+        examples = data.y.size(0)
+        total_loss += loss.item() * examples
+        total_examples += examples
+        total_correct += (out.argmax(dim=-1).eq(data.y)).all(dim=1).sum()
+
+    return total_loss / total_examples, total_correct / total_examples
+
+
+@torch.no_grad()
+def evaluate(loader, model, criterion):
     model.eval()
     total_loss = 0.
     total = 0.
@@ -135,16 +108,7 @@ def evaluate(model, loader):
     return mean_loss, acc
 
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--task_id', type=int, choices=[4, 15, 16, 18, 19])
-    parser.add_argument('--all_data', type=bool, default=False)
-    parser.add_argument('--patience', type=int, default=250)
-    args = parser.parse_args()
-
-    task_id = args.task_id
-    all_data = args.all_data
-    patience = args.patience
+def run_experiment(task_id, gate_nn, all_data=False, patience=250):
     params = baselines_parameters.get_parameters_for_task(task_id)
     n_train_to_try = params['n_train_to_try'] if not all_data else [0]
 
@@ -155,37 +119,42 @@ if __name__ == '__main__':
         fold_performances = []
         fold_test_performances = []
         for fold_id in range(1, N_FOLDS + 1):
-            run_desc = '{}_fold_{}_n_train_{}'.format(model_type, fold_id,
-                                                      n_train)
-            model = None
-            if params['n_targets'] == 1:
+            run_desc = 'ggnn_fold_{}_n_train_{}'.format(fold_id, n_train)
+            if params['mode'] == 'graph_level':
                 model = GraphLevelGGNN(annotation_size=params['max_token_id'],
                                        num_layers=2,
-                                       gate_nn=None,
+                                       gate_nn=gate_nn,
                                        hidden_size=params['hidden_size'] -
                                                    params['max_token_id'],
                                        ggnn_impl='team2').to(device)
+            elif params['mode'] == 'node_level':
+                raise NotImplementedError()
+            elif params['mode'] == 'seq_graph_level':
+                raise NotImplementedError()
+            elif params['mode'] == 'share_seq_graph_level':
+                raise NotImplementedError()
+            elif params['mode'] == 'share_seq_node_level':
+                raise NotImplementedError()
             else:
-                raise NotImplementedError('ggsnn not supported')
+                raise NotImplementedError()
 
             wandb.watch(model)
             wandb.config.update(params)
             wandb.log({'n_parameters': model.count_parameters()})
             wandb.run.name = 'task_{}_'.format(task_id) + run_desc
 
-            train_loader, val_loader = get_train_loaders(params,
-                                                         fold_id,
-                                                         n_train)
+            train_loader, val_loader, test_loader = get_data_loaders(params,
+                                                                     fold_id,
+                                                                     n_train)
 
             optimizer = torch.optim.Adam(model.parameters(),
                                          lr=params['learning_rate'])
             criterion = nn.CrossEntropyLoss()
 
             # Train the model and obtain best train and validation performance
-            model, fold_performance = train(model, train_loader, val_loader,
-                                            params,
-                                            run_desc,
-                                            patience)
+            model, fold_performance = train(train_loader, val_loader, model,
+                                            optimizer, criterion,
+                                            params, run_desc, patience)
 
             # Logging train and validation performance for fold
             wandb.run.summary['final_train_loss_{}'.format(run_desc)] = \
@@ -197,18 +166,8 @@ if __name__ == '__main__':
             wandb.run.summary['final_val_acc_{}'.format(run_desc)] = \
                 fold_performance[3]
             fold_performances.append(fold_performance)
-            # print(
-            #     'final_train_loss_{}: {}'.format(run_desc,
-            #     fold_performance[0]))
-            # print('final_val_loss_{}: {}'.format(run_desc,
-            # fold_performance[1]))
-            # print(
-            #     'final_train_acc_{}: {}'.format(run_desc, fold_performance[
-            #     2]))
-            # print('final_val_acc_{}: {}\n'.format(run_desc, fold_performance[
-            #     3]))
 
-            test_loss, test_acc = evaluate(model, test_loader)
+            test_loss, test_acc = evaluate(test_loader, model, criterion)
             wandb.run.summary['test_loss_{}'.format(run_desc)] = test_loss
             wandb.run.summary['test_acc_{}'.format(run_desc)] = test_acc
             fold_test_performances.append([test_loss, test_acc])
@@ -225,14 +184,6 @@ if __name__ == '__main__':
             final_performances[2]
         wandb.run.summary['val_acc_{}'.format(n_train)] = \
             final_performances[3]
-        # print(
-        #     'train_loss_{}: {}'.format(n_train, final_performances[0]))
-        # print(
-        #     'val_loss_{}: {}'.format(n_train, final_performances[1]))
-        # print(
-        #     'train_acc_{}: {}'.format(n_train, final_performances[2]))
-        # print(
-        #     'val_acc_{}: {}\n'.format(n_train, final_performances[3]))
 
         final_test_means = list(torch.tensor(
             fold_test_performances).mean(dim=0).numpy())
@@ -246,8 +197,3 @@ if __name__ == '__main__':
             final_test_stds[0]
         wandb.run.summary['test_acc_std_{}'.format(n_train)] = \
             final_test_stds[1]
-
-        print(
-            'avg_test_loss_{}: {}'.format(n_train, final_test_means[0]))
-        print(
-            'avg_test_acc_{}: {}\n'.format(n_train, final_test_means[1]))
