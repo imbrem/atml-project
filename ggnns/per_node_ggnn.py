@@ -60,9 +60,11 @@ class PerNodeGGNN(Module):
             self.hidden_state + self.annotation_size
         # Step 4: pass this through the per-node linear adapter
         if self.batched_hidden_layer:
-            return self.hidden_layer(x, batch=batch, **kwargs)
+            x = self.hidden_layer(x, batch=batch, **kwargs)
         else:
-            return self.hidden_layer(x, **kwargs)
+            x = self.hidden_layer(x, **kwargs)
+        assert x.shape[-1] == self.output_size
+        return x
 
     def reset_parameters(self):
         self.ggnn_layer.reset_parameters()
