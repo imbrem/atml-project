@@ -7,7 +7,7 @@ https://github.com/yujiali/ggnn/blob/master/babi/run_rnn_baselines.py
 """
 
 from data import BabiSequentialGraphDataset
-from graph_level_ggnn import GraphLevelGGNN
+from ggnns.graph_level_ggnn import GraphLevelGGNN
 from torch import nn
 from torch.utils.data import DataLoader
 import baseline_parameters
