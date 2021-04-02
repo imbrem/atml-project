@@ -23,6 +23,7 @@ class PerNodeGGNN(Module):
 
         self.hidden_state = hidden_state
         self.annotation_size = annotation_size
+        self.output_size = output_size
 
         self.ggnn_layer = make_ggnn(
             state_size=annotation_size + hidden_state,
