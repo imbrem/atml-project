@@ -13,7 +13,7 @@ import torch
 import wandb
 import os
 
-wandb.init(project='ggsnn-rnn-baselines')
+wandb.init(project='ggsnn')
 
 SEED = 8
 N_THREADS = 1
