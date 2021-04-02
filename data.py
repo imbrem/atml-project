@@ -152,7 +152,7 @@ class bAbIDataset:
     Load bAbI tasks for GGNN
     """
 
-    def __init__(self, path, task_id, is_train):
+    def __init__(self, path, question_id, train_val_test_type, train_examples=None):
         all_data = load_graphs_from_file(path)
         self.n_edge_types = find_max_edge_id(all_data)
         self.n_tasks = find_max_task_id(all_data)
@@ -163,6 +163,8 @@ class bAbIDataset:
         if train_val_test_type == "train":
             all_task_train_data = data_convert(all_task_train_data, 1)
             self.data = all_task_train_data[question_id]
+            if len(self.data) > train_examples:
+                self.data = self.data[:train_examples]
         elif train_val_test_type == "val":
             all_task_val_data = data_convert(all_task_val_data, 1)
             self.data = all_task_val_data[question_id]
@@ -179,13 +181,15 @@ class bAbIDataset:
         return len(self.data)
 
 
-def get_train_val_test_datasets(babi_data_path, task_id, question_id):
-    return bAbIDataset(os.path.join(babi_data_path, "processed_1", "train", "{}_graphs.txt".format(task_id)),
-                       question_id, "train"), \
-           bAbIDataset(os.path.join(babi_data_path, "processed_1", "train", "{}_graphs.txt".format(task_id)),
-                       question_id, "val"), \
-           bAbIDataset(os.path.join(babi_data_path, "processed_1", "test", "{}_graphs.txt".format(task_id)),
-                       question_id, "test")
+def get_train_val_test_datasets(babi_data_path, task_id, question_id, train_examples):
+    train_dataset = bAbIDataset(os.path.join(babi_data_path, "processed_1", "train", "{}_graphs.txt".format(task_id)),
+                       question_id, "train", train_examples)
+    return train_dataset, \
+        bAbIDataset(os.path.join(babi_data_path, "processed_1", "train", "{}_graphs.txt".format(task_id)),
+                    question_id, "val"), \
+        bAbIDataset(os.path.join(babi_data_path, "processed_1", "test", "{}_graphs.txt".format(task_id)),
+                    question_id, "test"), \
+        train_dataset.n_edge_types * 2
 
 
 if __name__ == "__main__":

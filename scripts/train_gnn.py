@@ -7,8 +7,8 @@ import torch.nn as nn
 from torch_geometric.data import DataLoader
 
 from scripts.arguments import parse_arguments
-from data import get_train_val_test_datasets, bAbIDataset
-from EdgeNet import EdgeNet
+from data import get_train_val_test_datasets
+from gnns.base_ggnn import BaseNodeSelectionGGNN
 
 
 def initialise_experiments():
@@ -16,12 +16,15 @@ def initialise_experiments():
     wandb.init(project=args.run_name,
                config={"epochs": args.epochs, "learning rate": args.lr, "batch size": args.bs,
                        "task id": args.task_id, "question id": args.question_id})
-    train_dataset, val_dataset, test_dataset = get_train_val_test_datasets(
-        babi_data_path=args.data_root, task_id=args.task_id, question_id=args.question_id)
+    train_dataset, val_dataset, test_dataset, total_edge_types = get_train_val_test_datasets(
+        babi_data_path=args.data_root, task_id=args.task_id, question_id=args.question_id,
+        train_examples=args.train_examples)
     train_loader = DataLoader(train_dataset, batch_size=args.bs, shuffle=True)
     val_loader = DataLoader(val_dataset, batch_size=len(val_dataset), shuffle=False)
     test_loader = DataLoader(test_dataset, batch_size=len(test_dataset), shuffle=False)
-    model = EdgeNet(args.annotation_size, args.edge_attr_size)
+    # model = EdgeNet(args.annotation_size, args.edge_attr_size)
+    model = BaseNodeSelectionGGNN(state_size=args.annotation_size, num_layers=args.num_layers, ggnn_impl="team2",
+                                  total_edge_types=total_edge_types, out_channels=args.annotation_size)
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
     evaluation_interval = args.evaluation_interval
@@ -91,6 +94,7 @@ def evaluate(loader, model, criterion):
         total_examples += examples
         total_loss += loss.item() * examples
         total_correct += (predicted == graph_batch.y).sum()
+        # print(prediction_probs, predicted)
     return total_loss / total_examples, total_correct / total_examples
 
 
