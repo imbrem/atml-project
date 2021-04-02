@@ -40,22 +40,22 @@ def get_parameters_for_task(model, task_id):
         parameters['max_iters'] = 300
         parameters['n_validation'] = 50
         # TODO wth is statedim
-        parameters['statedim'] = 5
-        parameters['annotationdim'] = 1
+        parameters['state_size'] = 5
+        parameters['annotation_size'] = 1
 
     elif task_id == 16:
         parameters['learning_rate'] = 0.01
         parameters['max_iters'] = 600
         parameters['n_validation'] = 50
-        parameters['statedim'] = 6
-        parameters['annotationdim'] = 1
+        parameters['state_size'] = 6
+        parameters['annotation_size'] = 1
 
     elif task_id == 18:
         parameters['learning_rate'] = 0.01
         parameters['max_iters'] = 400
         parameters['n_validation'] = 50
-        parameters['statedim'] = 3
-        parameters['annotationdim'] = 2
+        parameters['state_size'] = 3
+        parameters['annotation_size'] = 2
         parameters['mode'] = 'graph_level'
 
     elif task_id == 19:
@@ -63,17 +63,17 @@ def get_parameters_for_task(model, task_id):
         parameters['learning_rate'] = 0.005
         parameters['max_iters'] = 1000
         parameters['n_validation'] = 50
-        parameters['statedim'] = 6
-        parameters['annotationdim'] = 3
+        parameters['state_size'] = 6
+        parameters['annotation_size'] = 3
         parameters['mode'] = 'share_seq_graph_level'
 
     elif task_id == 24:  # 'seq4'
         parameters['learning_rate'] = 0.002
         parameters['batch_size'] = 10
         parameters['max_iters'] = 700
-        parameters['statedim'] = 20
+        parameters['state_size'] = 20
         parameters['n_validation'] = 50
-        parameters['annotationdim'] = 10
+        parameters['annotation_size'] = 10
         parameters['mode'] = 'share_seq_node_level'
         # TODO implement new root directory
 
@@ -81,9 +81,9 @@ def get_parameters_for_task(model, task_id):
         parameters['learning_rate'] = 0.001
         parameters['batch_size'] = 10
         parameters['max_iters'] = 300
-        parameters['statedim'] = 20
+        parameters['state_size'] = 20
         parameters['n_validation'] = 50
-        parameters['annotationdim'] = 10
+        parameters['annotation_size'] = 10
         parameters['mode'] = 'share_seq_node_level'
         # TODO implement new root directory
         # 'data/extra_seq_tasks/fold_%d/noisy_parsed/train/5_graphs.txt'
