@@ -15,9 +15,6 @@ treated as in a classification problem.
 
 import torch
 import torch.nn as nn
-# noinspection PyPep8Naming
-from torch.nn import functional as F
-
 
 class BaselineRNN(nn.Module):
     """Baseline RNN class.
@@ -63,13 +60,13 @@ class BaselineRNN(nn.Module):
                 sequences.size(1) - self.n_targets):  # iterate over timesteps
             combined = torch.cat((sequences[:, i, :], hidden), dim=1)
             hidden = self.i2h(combined)
-            hidden = F.tanh(hidden)
+            hidden = torch.tanh(hidden)
 
         for i in range(self.n_targets):
             combined = torch.cat((sequences[:, -self.n_targets + i, :],
                                   hidden), dim=1)
             hidden = self.i2h(combined)
-            hidden = F.tanh(hidden)
+            hidden = torch.tanh(hidden)
             output[:, -self.n_targets + i] = self.h2o(hidden)
 
         return output, hidden

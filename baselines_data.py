@@ -70,6 +70,12 @@ def transform_sequence_list(sequence_list, max_token_id):
 
 
 def transform_target_list(target_list, n_targets, max_token_id):
+    """ Creates the tensor of targets.
+
+    Targets fall in the range of [0, C-1] where C is the total number of
+    classes (max_token_id).
+    """
+
     # Append special end of sequence symbol when the target is a sequence.
     targets = torch.stack(target_list) - 1  # [n_seq x n_targets]
     if n_targets > 1:
@@ -86,7 +92,7 @@ def prepare_sequences_and_targets(token_lists, n_targets, max_token_id):
 
     Adds zero-vector padding to the end of sequence if the sequences have
     different lengths.
-    Transforms tokens into one-hot encoded vectors.
+    Transforms sequence tokens into one-hot encoded vectors.
     Appends an end-of-sequence token to the target if n_targets > 1.
     """
     sequence_list, target_list = token_lists
