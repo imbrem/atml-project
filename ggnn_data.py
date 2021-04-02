@@ -11,8 +11,10 @@ https://github.com/chingyaoc/ggnn.pytorch/blob/master/utils/data/dataloader.py
 import os
 import numpy as np
 import torch
+from torch.utils.data import DataLoader
 from torch_geometric.data import Data
 import baselines_data
+from pathlib import Path
 
 
 def load_graphs_from_file(file_name):
@@ -70,15 +72,6 @@ def find_max_task_id(data_list):
                 max_node_id = item[0]
     return max_node_id
 
-
-# def split_set(data_list):
-#     # This is a horrible piece of code and should never be used
-#     n_examples = len(data_list)
-#     idx = range(n_examples)
-#     train = idx[:50]
-#     val = idx[-50:]
-#     return np.array(data_list, dtype=object)[train], np.array(data_list,
-#     dtype=object)[val]
 
 def split_train_and_val(data_list):
     n_examples = len(data_list)
@@ -146,6 +139,22 @@ def create_pg_graph(datapoint, n_edge_types):
     return Data(x=x, edge_index=edge_index, edge_attr=edge_attr, y=y)
 
 
+def get_train_val_test_datasets(babi_data_path, task_id, question_id,
+                                train_examples):
+    train_dataset = bAbIDataset(
+        os.path.join(babi_data_path, "processed_1", "train",
+                     "{}_graphs.txt".format(task_id)),
+        question_id, "train", train_examples)
+    return train_dataset, \
+           bAbIDataset(os.path.join(babi_data_path, "processed_1", "train",
+                                    "{}_graphs.txt".format(task_id)),
+                       question_id, "val"), \
+           bAbIDataset(os.path.join(babi_data_path, "processed_1", "test",
+                                    "{}_graphs.txt".format(task_id)),
+                       question_id, "test"), \
+           train_dataset.n_edge_types * 2
+
+
 def get_sequential_graph(sequence, target):
     # sequence: [seq_len, max_node_id]
     # target: [n_targets]
@@ -182,6 +191,51 @@ class bAbIDataset:
             self.data = all_task_test_data[question_id]
         else:
             raise AssertionError
+
+    def __getitem__(self, index):
+        return create_pg_graph(self.data[index], n_edge_types=self.n_edge_types)
+
+    def __len__(self):
+        return len(self.data)
+
+
+def get_data_filename(root_dir, fold_id, task_id, split):
+    """ Returns the filename up to .txt extension. """
+    filename = Path(root_dir)
+    filename = filename / 'processed_{}'.format(fold_id)
+    filename = filename / ('test' if split is 'test' else 'train')
+    filename = filename / '{}_graphs.txt'.format(task_id)
+
+    return filename
+
+
+# TODO implement n_targets
+class BabiGraphDataset:
+    """
+    Load bAbI tasks for GGNN
+    """
+
+    def __init__(self, root_dir, fold_id, task_id, n_targets=1,
+                 split='train', n_train=0):
+        filename = get_data_filename(root_dir, fold_id, task_id, split)
+        all_data = load_graphs_from_file(filename)
+        self.n_edge_types = find_max_edge_id(all_data)
+        self.n_tasks = find_max_task_id(all_data)
+        self.n_nodes = find_max_node_id(all_data)
+
+        all_task_train_data, all_task_val_data = split_train_and_val(all_data)
+
+        if split == 'train':
+            all_task_train_data = data_convert(all_task_train_data, 1)
+            self.data = all_task_train_data[task_id]
+            if len(self.data) > n_train:
+                self.data = self.data[:n_train]
+        elif split == 'validation':
+            all_task_val_data = data_convert(all_task_val_data, 1)
+            self.data = all_task_val_data[task_id]
+        elif split == 'test':
+            all_task_test_data = data_convert(all_data, 1)
+            self.data = all_task_test_data[task_id]
 
     def __getitem__(self, index):
         return create_pg_graph(self.data[index], n_edge_types=self.n_edge_types)
@@ -241,20 +295,53 @@ class BabiSequentialGraphDataset:
         return self.graphs[idx], self.graphs[idx]
 
 
-def get_train_val_test_datasets(babi_data_path, task_id, question_id,
-                                train_examples):
-    train_dataset = bAbIDataset(
-        os.path.join(babi_data_path, "processed_1", "train",
-                     "{}_graphs.txt".format(task_id)),
-        question_id, "train", train_examples)
-    return train_dataset, \
-           bAbIDataset(os.path.join(babi_data_path, "processed_1", "train",
-                                    "{}_graphs.txt".format(task_id)),
-                       question_id, "val"), \
-           bAbIDataset(os.path.join(babi_data_path, "processed_1", "test",
-                                    "{}_graphs.txt".format(task_id)),
-                       question_id, "test"), \
-           train_dataset.n_edge_types * 2
+def get_data_loaders(params, fold_id, n_train, dataset='sequential_graph'):
+    """
+    Args:
+        params (dict): dictionary of parameters (specified in
+        ggnn_parameters.py)
+        fold_id (int): fold id.
+        n_train (int): how many training examples to use (train_examples)
+        dataset (str): one of 'babi_graph', 'sequential_graph'
+    """
+    if dataset == 'sequential_graph':
+        train_dataset = BabiSequentialGraphDataset(params['root_dir'], fold_id,
+                                                   params['task_id'],
+                                                   params['n_targets'],
+                                                   split='train',
+                                                   n_train=n_train)
+        val_dataset = BabiSequentialGraphDataset(params['root_dir'], fold_id,
+                                                 params['task_id'],
+                                                 params['n_targets'],
+                                                 split='validation')
+        test_dataset = BabiSequentialGraphDataset(params['root_dir'], fold_id,
+                                                 params['task_id'],
+                                                 params['n_targets'],
+                                                 split='test')
+    elif dataset == 'babi_graph':
+        train_dataset = BabiGraphDataset(params['root_dir'], fold_id,
+                                         params['task_id'], params['n_targets'],
+                                         split='train', n_train=n_train)
+        val_dataset = BabiGraphDataset(params['root_dir'], fold_id,
+                                       params['task_id'], params['n_targets'],
+                                       split='validation', n_train=n_train)
+        test_dataset = BabiGraphDataset(params['root_dir'], fold_id,
+                                       params['task_id'], params['n_targets'],
+                                       split='test', n_train=n_train)
+    else:
+        raise NotImplementedError('Dataset not supported')
+
+    train_loader = DataLoader(train_dataset,
+                              batch_size=params['batch_size'],
+                              shuffle=True)
+    val_loader = DataLoader(val_dataset,
+                            batch_size=params['batch_size'],
+                            shuffle=True)
+    test_loader = DataLoader(test_dataset,
+                            batch_size=params['batch_size'],
+                            shuffle=True)
+
+    return train_loader, val_loader, test_loader
 
 
 if __name__ == "__main__":
