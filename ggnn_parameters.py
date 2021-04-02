@@ -5,16 +5,16 @@ def get_default_parameters():
     parameters = {'task_id': 4,
                   'embedding_size': 50,
                   'hidden_size': 50,
+                  'state_size': 4,  # dimensionality of node representations
+                  'annotation_size': 1,  # number of node annotations
                   'n_targets': 1,
+                  'n_steps': 5,
+                  'n_train_to_try': [50],
+                  'n_validation': 100,  # number of validation instances
                   'learning_rate': 1e-3,
                   'batch_size': 10,
                   'max_iters': 1000,
                   'root_dir': 'babi_data',
-                  'n_train_to_try': [50],
-                  'n_steps': 5,
-                  'statedim': 4,  # dimensionality of node representations
-                  'n_validation': 100,  # number of validation instances
-                  'annotationdim': 1,  # number of node annotations
                   'mode': 'node_level'
                   # 'one of {node_level, graph_level, seq_graph_level,
                   # share_seq_graph_level, share_seq_node_level}'
