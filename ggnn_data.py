@@ -146,6 +146,22 @@ def create_pg_graph(datapoint, n_edge_types):
     return Data(x=x, edge_index=edge_index, edge_attr=edge_attr, y=y)
 
 
+def get_train_val_test_datasets(babi_data_path, task_id, question_id,
+                                train_examples):
+    train_dataset = bAbIDataset(
+        os.path.join(babi_data_path, "processed_1", "train",
+                     "{}_graphs.txt".format(task_id)),
+        question_id, "train", train_examples)
+    return train_dataset, \
+           bAbIDataset(os.path.join(babi_data_path, "processed_1", "train",
+                                    "{}_graphs.txt".format(task_id)),
+                       question_id, "val"), \
+           bAbIDataset(os.path.join(babi_data_path, "processed_1", "test",
+                                    "{}_graphs.txt".format(task_id)),
+                       question_id, "test"), \
+           train_dataset.n_edge_types * 2
+
+
 def get_sequential_graph(sequence, target):
     # sequence: [seq_len, max_node_id]
     # target: [n_targets]
@@ -239,22 +255,6 @@ class BabiSequentialGraphDataset:
 
     def __getitem__(self, idx):
         return self.graphs[idx], self.graphs[idx]
-
-
-def get_train_val_test_datasets(babi_data_path, task_id, question_id,
-                                train_examples):
-    train_dataset = bAbIDataset(
-        os.path.join(babi_data_path, "processed_1", "train",
-                     "{}_graphs.txt".format(task_id)),
-        question_id, "train", train_examples)
-    return train_dataset, \
-           bAbIDataset(os.path.join(babi_data_path, "processed_1", "train",
-                                    "{}_graphs.txt".format(task_id)),
-                       question_id, "val"), \
-           bAbIDataset(os.path.join(babi_data_path, "processed_1", "test",
-                                    "{}_graphs.txt".format(task_id)),
-                       question_id, "test"), \
-           train_dataset.n_edge_types * 2
 
 
 if __name__ == "__main__":
