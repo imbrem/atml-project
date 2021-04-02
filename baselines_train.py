@@ -11,7 +11,7 @@ from baselines.baseline_rnn import BaselineRNN
 from baselines.baseline_lstm import BaselineLSTM
 from torch import nn
 from torch.utils.data import DataLoader
-import baseline_parameters
+import baselines_parameters
 import torch
 import argparse
 import wandb
@@ -152,7 +152,7 @@ if __name__ == '__main__':
     task_id = args.task_id
     all_data = args.all_data
     patience = args.patience
-    params = baseline_parameters.get_parameters_for_task(model_type, task_id)
+    params = baselines_parameters.get_parameters_for_task(model_type, task_id)
     n_train_to_try = params['n_train_to_try'] if not all_data else [0]
 
     torch.manual_seed(SEED)

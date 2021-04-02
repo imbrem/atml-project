@@ -10,7 +10,7 @@ from ggnn_data import BabiSequentialGraphDataset
 from ggnns.graph_level_ggnn import GraphLevelGGNN
 from torch import nn
 from torch.utils.data import DataLoader
-import baseline_parameters
+import baselines_parameters
 import torch
 import argparse
 import wandb
@@ -145,7 +145,7 @@ if __name__ == '__main__':
     task_id = args.task_id
     all_data = args.all_data
     patience = args.patience
-    params = baseline_parameters.get_parameters_for_task(task_id)
+    params = baselines_parameters.get_parameters_for_task(task_id)
     n_train_to_try = params['n_train_to_try'] if not all_data else [0]
 
     torch.manual_seed(SEED)
