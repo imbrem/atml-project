@@ -11,8 +11,10 @@ https://github.com/chingyaoc/ggnn.pytorch/blob/master/utils/data/dataloader.py
 import os
 import numpy as np
 import torch
+from torch.utils.data import DataLoader
 from torch_geometric.data import Data
 import baselines_data
+from pathlib import Path
 
 
 def load_graphs_from_file(file_name):
@@ -198,6 +200,51 @@ class bAbIDataset:
             self.data = all_task_test_data[question_id]
         else:
             raise AssertionError
+
+    def __getitem__(self, index):
+        return create_pg_graph(self.data[index], n_edge_types=self.n_edge_types)
+
+    def __len__(self):
+        return len(self.data)
+
+
+def get_data_filename(root_dir, fold_id, task_id, split):
+    """ Returns the filename up to .txt extension. """
+    filename = Path(root_dir)
+    filename = filename / 'processed_{}'.format(fold_id)
+    filename = filename / ('test' if split is 'test' else 'train')
+    filename = filename / '{}_graphs.txt'.format(task_id)
+
+    return filename
+
+
+# TODO implement n_targets
+class BabiGraphDataset:
+    """
+    Load bAbI tasks for GGNN
+    """
+
+    def __init__(self, root_dir, fold_id, task_id, n_targets=1,
+                 split='train', n_train=0):
+        filename = get_data_filename(root_dir, fold_id, task_id, split)
+        all_data = load_graphs_from_file(filename)
+        self.n_edge_types = find_max_edge_id(all_data)
+        self.n_tasks = find_max_task_id(all_data)
+        self.n_nodes = find_max_node_id(all_data)
+
+        all_task_train_data, all_task_val_data = split_train_and_val(all_data)
+
+        if split == 'train':
+            all_task_train_data = data_convert(all_task_train_data, 1)
+            self.data = all_task_train_data[task_id]
+            if len(self.data) > n_train:
+                self.data = self.data[:n_train]
+        elif split == 'validation':
+            all_task_val_data = data_convert(all_task_val_data, 1)
+            self.data = all_task_val_data[task_id]
+        elif split == 'test':
+            all_task_test_data = data_convert(all_data, 1)
+            self.data = all_task_test_data[task_id]
 
     def __getitem__(self, index):
         return create_pg_graph(self.data[index], n_edge_types=self.n_edge_types)
