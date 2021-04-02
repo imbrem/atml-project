@@ -7,7 +7,7 @@ import torch.nn as nn
 from torch_geometric.data import DataLoader
 
 from scripts.arguments import parse_arguments
-from data import get_train_val_test_datasets
+from ggnn_data import get_train_val_test_datasets
 from ggnns.base_ggnn import BaseNodeSelectionGGNN
 
 

@@ -6,7 +6,7 @@ https://github.com/yujiali/ggnn/blob/master/babi/babi_rnn_train.lua
 https://github.com/yujiali/ggnn/blob/master/babi/run_rnn_baselines.py
 """
 
-from data import BabiSequentialGraphDataset
+from ggnn_data import BabiSequentialGraphDataset
 from ggnns.graph_level_ggnn import GraphLevelGGNN
 from torch import nn
 from torch.utils.data import DataLoader

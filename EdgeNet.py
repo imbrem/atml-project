@@ -6,7 +6,7 @@ from torch_geometric.nn.conv import MessagePassing
 from torch_geometric.utils import softmax
 from torch_sparse import SparseTensor
 
-from data import bAbIDataset
+from ggnn_data import bAbIDataset
 
 
 class EdgeNet(MessagePassing):
