@@ -44,7 +44,7 @@ class PerNodeGGNN(Module):
         else:
             self.hidden_layer = hidden_layer
 
-    def forward(self, x, edge_index, batch, **kwargs):
+    def forward(self, x, edge_index, batch=None, **kwargs):
         # Step 1: pad `x` from `annotation_size` to `hidden_state +
         # annotation_size`
         assert x.shape[-1] == self.annotation_size
@@ -60,7 +60,7 @@ class PerNodeGGNN(Module):
         assert x.shape[-1] == self.annotation_size + \
             self.hidden_state + self.annotation_size
         # Step 4: pass this through the per-node linear adapter
-        if self.batched_hidden_layer:
+        if batch is not None and self.batched_hidden_layer:
             x = self.hidden_layer(x, batch=batch, **kwargs)
         else:
             x = self.hidden_layer(x, **kwargs)
