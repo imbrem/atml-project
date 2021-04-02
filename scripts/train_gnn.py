@@ -8,7 +8,7 @@ from torch_geometric.data import DataLoader
 
 from scripts.arguments import parse_arguments
 from data import get_train_val_test_datasets
-from gnns.base_ggnn import BaseNodeSelectionGGNN
+from ggnns.base_ggnn import BaseNodeSelectionGGNN
 
 
 def initialise_experiments():
