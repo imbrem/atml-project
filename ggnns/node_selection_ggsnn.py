@@ -1,1 +1,0 @@
-# A GGSNN producing a sequence of node selections
