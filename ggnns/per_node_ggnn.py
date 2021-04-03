@@ -15,7 +15,6 @@ class PerNodeGGNN(Module):
                  num_layers: int,
                  hidden_state: int = 0,
                  hidden_layer: Optional[Module] = None,
-                 batched_hidden_layer: bool = False,
                  padding_mode: str = 'constant',
                  padding_const: int = 0,
                  ggnn_impl: str = 'torch_geometric', **kwargs):
@@ -34,7 +33,6 @@ class PerNodeGGNN(Module):
 
         self.padding_mode = padding_mode
         self.padding_const = padding_const
-        self.batched_hidden_layer = batched_hidden_layer
 
         if hidden_layer is None:
             self.hidden_layer = nn.Sequential(
@@ -44,7 +42,7 @@ class PerNodeGGNN(Module):
         else:
             self.hidden_layer = hidden_layer
 
-    def forward(self, x, edge_index, batch=None, **kwargs):
+    def forward(self, x, edge_index, **kwargs):
         # Step 1: pad `x` from `annotation_size` to `hidden_state +
         # annotation_size`
         assert x.shape[-1] == self.annotation_size
@@ -60,10 +58,7 @@ class PerNodeGGNN(Module):
         assert x.shape[-1] == self.annotation_size + \
             self.hidden_state + self.annotation_size
         # Step 4: pass this through the per-node linear adapter
-        if batch is not None and self.batched_hidden_layer:
-            x = self.hidden_layer(x, batch=batch, **kwargs)
-        else:
-            x = self.hidden_layer(x, **kwargs)
+        x = self.hidden_layer(x)
         assert x.shape[-1] == self.output_size
         return x
 
@@ -71,6 +66,15 @@ class PerNodeGGNN(Module):
         self.ggnn_layer.reset_parameters()
         self.hidden_layer.reset_parameters()
 
+
+def make_per_node_hidden_layer(hidden_layer: Optional[Node], annotation_size: int, hidden_state: int, output_size: int) -> Module:
+    if hidden_layer is None:
+        return nn.Sequential(
+            nn.Linear(annotation_size + hidden_state +
+                      annotation_size, output_size),
+        )
+    else:
+        return hidden_layer
 
 if __name__ == "__main__":
     print("Identity test for PerNodeGGNN")
