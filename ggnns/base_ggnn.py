@@ -7,9 +7,8 @@ from torch import Tensor
 import torch_geometric
 from torch import nn
 from torch_geometric.utils import softmax
-from torch_geometric.nn.conv import MessagePassing, GatedGraphConv
+from torch_geometric.nn.conv import MessagePassing
 from torch.nn import Parameter as Param
-from torch_sparse import SparseTensor, matmul
 from torch_geometric.nn.inits import glorot
 
 
