@@ -66,27 +66,6 @@ def get_parameters_for_task(task_id):
         parameters['annotation_size'] = 3
         parameters['mode'] = 'share_seq_graph_level'
 
-    elif task_id == 24:  # 'seq4'
-        parameters['learning_rate'] = 0.002
-        parameters['batch_size'] = 10
-        parameters['max_iters'] = 700
-        parameters['state_size'] = 20
-        parameters['n_validation'] = 50
-        parameters['annotation_size'] = 10
-        parameters['mode'] = 'share_seq_node_level'
-        # TODO implement new root directory
-
-    elif task_id == 25:  # 'seq5'
-        parameters['learning_rate'] = 0.001
-        parameters['batch_size'] = 10
-        parameters['max_iters'] = 300
-        parameters['state_size'] = 20
-        parameters['n_validation'] = 50
-        parameters['annotation_size'] = 10
-        parameters['mode'] = 'share_seq_node_level'
-        # TODO implement new root directory
-        # 'data/extra_seq_tasks/fold_%d/noisy_parsed/train/5_graphs.txt'
-
     parameters['max_token_id'] = get_max_token_id(parameters[
                                                       'root_dir'],
                                                   parameters[
