@@ -23,10 +23,9 @@ def get_default_parameters():
     return parameters
 
 
-def get_parameters_for_task(model, task_id):
+def get_parameters_for_task(task_id):
     """Returns the parameters for a given task and model."""
     parameters = get_default_parameters()
-    parameters['model'] = model
     parameters['task_id'] = task_id
 
     if task_id == 4:

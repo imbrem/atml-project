@@ -8,7 +8,7 @@ Adapted from Yujia Li,
 from ggnn_data import get_data_loaders
 from ggnns.graph_level_ggnn import GraphLevelGGNN
 from torch import nn
-import baselines_parameters
+import ggnn_parameters
 import torch
 import wandb
 import os
@@ -108,8 +108,8 @@ def evaluate(loader, model, criterion):
     return mean_loss, acc
 
 
-def run_experiment(task_id, gate_nn, all_data=False, patience=250):
-    params = baselines_parameters.get_parameters_for_task(task_id)
+def run_experiment(task_id, gate_nn, all_data=False, patience=0):
+    params = ggnn_parameters.get_parameters_for_task(task_id)
     n_train_to_try = params['n_train_to_try'] if not all_data else [0]
 
     torch.manual_seed(SEED)
