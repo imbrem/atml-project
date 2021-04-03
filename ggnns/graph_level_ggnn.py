@@ -15,6 +15,7 @@ class GraphLevelGGNN(Module):
             num_layers: int,
             gate_nn: Module,
             hidden_size: int = 0,
+            final_layer: Optional[Module] = None,
             nn: Optional[Module] = None,
             padding_mode: str = 'constant',
             padding_const: int = 0,
@@ -36,6 +37,7 @@ class GraphLevelGGNN(Module):
         self.attention_layer = make_graph_attention(
             gate_nn=gate_nn, nn=nn, graph_attention_impl=graph_attention_impl,
             **kwargs)
+        self.final_layer = final_layer
 
     def reset_parameters(self):
         self.ggnn_layer.reset_parameters()
@@ -56,13 +58,19 @@ class GraphLevelGGNN(Module):
         x = torch.cat((x_ggnn, x), -1)
         del x_ggnn
         assert x.shape[-1] == self.annotation_size + \
-               self.hidden_state + self.annotation_size
+            self.hidden_state + self.annotation_size
 
         # Step 4: pass this through the attention layer
         x = self.attention_layer(x, batch)
 
+        # Step 5: pass this through the final layer, if 
+        if self.final_layer is not None:
+            x = self.final_layer(x)
+
         return x
 
-#TODO: change to more complicated nonlinear NN, etc...
+# TODO: change to more complicated nonlinear NN, etc...
+
+
 def make_linear_gate_nn(annotation_size: int, hidden_state: int = 0) -> Module:
     return nn.Linear(2 * annotation_size + hidden_state, 1)
