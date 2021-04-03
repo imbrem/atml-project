@@ -5,7 +5,7 @@ from torch import nn
 import torch.nn.functional as F
 from typing import Union, List, Optional
 from global_soft_attention import make_graph_attention
-from per_node_ggnn import PerNodeLayer
+from per_node_ggnn import PerNodeLayer, make_per_node_hidden_layer
 from base_ggnn import make_ggnn
 from torch.nn import Module
 
@@ -59,11 +59,11 @@ class GraphLevelGGSNN(Module):
             state_size=annotation_size + self.propagation_hidden_state,
             num_layers=propagation_num_layers,
             ggnn_impl=ggnn_impl, **kwargs)
-        self.per_node_layer = PerNodeLayer(
-            input_size=2*annotation_size + self.propagation_hidden_state
-            output_size=annotation_size,
+        self.propagation_hidden_layer = make_per_node_hidden_layer(
             hidden_layer=propagation_hidden_layer,
-            linear_activation=linear_activation
+            annotation_size=annotation_size,
+            hidden_state=hidden_state,
+            output_size=annotation_size,
         )
 
     def forward(self, x, edge_index, batch, pred_steps, **kwargs):
@@ -89,7 +89,7 @@ class GraphLevelGGSNN(Module):
             outputs.append(out)
             del out
             # Step 5: transform the propagated output, now of shape `hidden_state + 2*annotation_size`, to a new set of annotations
-            x = self.per_node_layer(x_ggnn)
+            x = self.propagation_hidden_layer(x_ggnn)
             del x_ggnn
 
         return torch.stack(outputs, dim=1)
