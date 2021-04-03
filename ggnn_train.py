@@ -7,6 +7,7 @@ Adapted from Yujia Li,
 
 from ggnn_data import get_data_loaders
 from ggnns.graph_level_ggnn import GraphLevelGGNN
+from ggnns.graph_level_ggnn import make_linear_gate_nn
 from torch import nn
 import ggnn_parameters
 import torch
@@ -123,6 +124,10 @@ def run_experiment(task_id, all_data=False, patience=0):
             if params['mode'] == 'graph_level':
                 model = GraphLevelGGNN(annotation_size=params['max_token_id'],
                                        num_layers=2,
+                                       gate_nn=make_linear_gate_nn(params[
+                                                                       'annotation_size'],
+                                                                   params[
+                                                                       'hidden_size']),
                                        hidden_size=params['hidden_size'] -
                                                    params['max_token_id'],
                                        ggnn_impl='team2').to(device)
