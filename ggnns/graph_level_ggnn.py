@@ -73,4 +73,4 @@ class GraphLevelGGNN(Module):
 
 
 def make_linear_gate_nn(annotation_size: int, hidden_state: int = 0) -> Module:
-    return nn.Linear(2 * annotation_size + hidden_state, 1)
+    return torch.nn.Linear(2 * annotation_size + hidden_state, 1)
