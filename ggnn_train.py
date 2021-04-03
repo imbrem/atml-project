@@ -108,7 +108,7 @@ def evaluate(loader, model, criterion):
     return mean_loss, acc
 
 
-def run_experiment(task_id, gate_nn, all_data=False, patience=0):
+def run_experiment(task_id, all_data=False, patience=0):
     params = ggnn_parameters.get_parameters_for_task(task_id)
     n_train_to_try = params['n_train_to_try'] if not all_data else [0]
 
@@ -121,6 +121,8 @@ def run_experiment(task_id, gate_nn, all_data=False, patience=0):
         for fold_id in range(1, N_FOLDS + 1):
             run_desc = 'ggnn_fold_{}_n_train_{}'.format(fold_id, n_train)
             if params['mode'] == 'graph_level':
+                # TODO create gate_nn
+                gate_nn=None
                 model = GraphLevelGGNN(annotation_size=params['max_token_id'],
                                        num_layers=2,
                                        gate_nn=gate_nn,
