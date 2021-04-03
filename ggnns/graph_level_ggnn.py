@@ -62,3 +62,7 @@ class GraphLevelGGNN(Module):
         x = self.attention_layer(x, batch)
 
         return x
+
+#TODO: change to more complicated nonlinear NN, etc...
+def make_linear_gate_nn(annotation_size: int, hidden_state: int = 0) -> Module:
+    return nn.Linear(2 * annotation_size + hidden_state, 1)
