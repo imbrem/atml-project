@@ -220,7 +220,7 @@ class BabiGraphDataset:
     Load bAbI tasks for GGNN
     """
 
-    def __init__(self, root_dir, fold_id, task_id, n_targets=1,
+    def __init__(self, root_dir, fold_id, task_id, annotation_size=1,
                  split='train', n_train=0):
         filename = get_data_filename(root_dir, fold_id, task_id, split)
         all_data = load_graphs_from_file(filename)
@@ -231,15 +231,15 @@ class BabiGraphDataset:
         all_task_train_data, all_task_val_data = split_train_and_val(all_data)
 
         if split == 'train':
-            all_task_train_data = data_convert(all_task_train_data, 1)
+            all_task_train_data = data_convert(all_task_train_data, annotation_size)
             self.data = all_task_train_data[0]
             if len(self.data) > n_train:
                 self.data = self.data[:n_train]
         elif split == 'validation':
-            all_task_val_data = data_convert(all_task_val_data, 1)
+            all_task_val_data = data_convert(all_task_val_data, annotation_size)
             self.data = all_task_val_data[0]
         elif split == 'test':
-            all_task_test_data = data_convert(all_data, 1)
+            all_task_test_data = data_convert(all_data, annotation_size)
             self.data = all_task_test_data[0]
 
     def __getitem__(self, index):
@@ -325,13 +325,16 @@ def get_data_loaders(params, fold_id, n_train, dataset='babi_graph'):
                                                   split='test')
     elif dataset == 'babi_graph':
         train_dataset = BabiGraphDataset(params['root_dir'], fold_id,
-                                         params['task_id'], params['n_targets'],
+                                         params['task_id'], params[
+                                             'annotation_size'],
                                          split='train', n_train=n_train)
         val_dataset = BabiGraphDataset(params['root_dir'], fold_id,
-                                       params['task_id'], params['n_targets'],
+                                       params['task_id'], params[
+                                           'annotation_size'],
                                        split='validation', n_train=n_train)
         test_dataset = BabiGraphDataset(params['root_dir'], fold_id,
-                                        params['task_id'], params['n_targets'],
+                                        params['task_id'], params[
+                                            'annotation_size'],
                                         split='test', n_train=n_train)
     else:
         raise NotImplementedError('Dataset not supported')
