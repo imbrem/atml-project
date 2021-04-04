@@ -135,7 +135,7 @@ def create_pg_graph(datapoint, n_edge_types):
     for edge_type in full_edge_type_indices.numpy().tolist():
         edge_attr[tuple(edge_type)] = 1
 
-    y = torch.LongTensor([datapoint[2] - 1]).view(1)
+    y = torch.unsqueeze(torch.LongTensor([datapoint[2] - 1]).view(1), -1)
     return Data(x=x, edge_index=edge_index, edge_attr=edge_attr, y=y)
 
 

@@ -125,7 +125,8 @@ class BaseNodeSelectionGGNN(nn.Module):
     def forward(self, x, edge_index, edge_attr, batch):
         size = batch[-1].item() + 1
         out = self.ggnn(x, edge_index, edge_attr)
-        return softmax(self.mlp(out), batch, num_nodes=size).view(size, -1)
+        return torch.unsqueeze(softmax(self.mlp(out), batch,
+                                      num_nodes=size).view(size, -1), dim=1)
 
 
 class BaseGraphLevelGGNN(nn.Module):
@@ -163,7 +164,7 @@ class BaseGraphLevelGGNN(nn.Module):
         out = self.final_activation(out)
 
         out = self.classification_layer(out)
-        return out
+        return torch.unsqueeze(out, 1)
 
     def count_parameters(self):
         return sum(p.numel() for p in self.parameters() if p.requires_grad)
