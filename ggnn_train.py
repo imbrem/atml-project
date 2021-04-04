@@ -40,15 +40,13 @@ def train(train_loader, val_loader, model, optimizer,
 
         if log:
             wandb.log({'train_loss_{}'.format(run_desc): train_loss,
-                       'train_accuracy_{}'.format(run_desc): train_accuracy},
-                      step=epoch)
+                       'train_accuracy_{}'.format(run_desc): train_accuracy})
 
         # Validation
         val_loss, val_accuracy = evaluate(val_loader, model, criterion)
         if log:
             wandb.log({'val_loss_{}'.format(run_desc): val_loss,
-                       'val_accuracy_{}'.format(run_desc): val_accuracy},
-                      step=epoch)
+                       'val_accuracy_{}'.format(run_desc): val_accuracy})
 
         if best_val_loss is None or val_loss < best_val_loss - delta:
             iters = 0
