@@ -5,9 +5,8 @@ Adapted from Yujia Li,
 # TODO ggnn directories
 """
 
-from ggnn_data import get_data_loaders
-from ggnns.graph_level_ggnn import GraphLevelGGNN
-from ggnns.graph_level_ggnn import make_linear_gate_nn
+from ggnn_data import get_data_loaders, get_n_edge_types
+from ggnns.base_ggnn import BaseGraphLevelGGNN
 from torch import nn
 import ggnn_parameters
 import torch
@@ -122,17 +121,20 @@ def run_experiment(task_id, dataset='babi_graph', all_data=False, patience=0):
         fold_performances = []
         fold_test_performances = []
         for fold_id in range(1, N_FOLDS + 1):
+            train_loader, val_loader, test_loader = get_data_loaders(params,
+                                                                     fold_id,
+                                                                     n_train,
+                                                                     dataset)
+            n_edge_types = get_n_edge_types(params, task_id)
+
             run_desc = 'ggnn_fold_{}_n_train_{}'.format(fold_id, n_train)
             if params['mode'] == 'graph_level':
-                model = GraphLevelGGNN(annotation_size=params['max_token_id'],
-                                       num_layers=2,
-                                       gate_nn=make_linear_gate_nn(params[
-                                                                       'annotation_size'],
-                                                                   params[
-                                                                       'hidden_size']),
-                                       hidden_size=params['hidden_size'] -
-                                                   params['max_token_id'],
-                                       ggnn_impl='team2').to(device)
+                model = BaseGraphLevelGGNN(
+                    annotation_size=params['annotation_size'],
+                    num_layers=params['num_layers'], ggnn_impl='team2',
+                    total_edge_types=n_edge_types, classification_categories=2,
+                    state_size=params['state_size']).to(
+                    device)
             elif params['mode'] == 'node_level':
                 raise NotImplementedError()
             elif params['mode'] == 'seq_graph_level':
@@ -148,11 +150,6 @@ def run_experiment(task_id, dataset='babi_graph', all_data=False, patience=0):
             wandb.config.update(params)
             wandb.log({'n_parameters': model.count_parameters()})
             wandb.run.name = 'task_{}_'.format(task_id) + run_desc
-
-            train_loader, val_loader, test_loader = get_data_loaders(params,
-                                                                     fold_id,
-                                                                     n_train,
-                                                                     dataset)
 
             optimizer = torch.optim.Adam(model.parameters(),
                                          lr=params['learning_rate'])
