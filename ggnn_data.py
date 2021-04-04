@@ -294,7 +294,7 @@ class BabiSequentialGraphDataset:
         return self.graphs[idx]
 
 
-def get_data_loaders(params, fold_id, n_train, dataset='sequential_graph'):
+def get_data_loaders(params, fold_id, n_train, dataset='babi_graph'):
     """
     Args:
         params (dict): dictionary of parameters (specified in

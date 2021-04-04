@@ -111,7 +111,7 @@ def evaluate(loader, model, criterion):
     return total_loss / total_examples, total_correct / total_examples
 
 
-def run_experiment(task_id, all_data=False, patience=0):
+def run_experiment(task_id, dataset='babi_graph', all_data=False, patience=0):
     params = ggnn_parameters.get_parameters_for_task(task_id)
     n_train_to_try = params['n_train_to_try'] if not all_data else [0]
 
@@ -151,7 +151,8 @@ def run_experiment(task_id, all_data=False, patience=0):
 
             train_loader, val_loader, test_loader = get_data_loaders(params,
                                                                      fold_id,
-                                                                     n_train)
+                                                                     n_train,
+                                                                     dataset)
 
             optimizer = torch.optim.Adam(model.parameters(),
                                          lr=params['learning_rate'])
