@@ -69,6 +69,9 @@ class GraphLevelGGNN(Module):
 
         return x
 
+    def count_parameters(self):
+        return sum(p.numel() for p in self.parameters() if p.requires_grad)
+
 # TODO: change to more complicated nonlinear NN, etc...
 
 
