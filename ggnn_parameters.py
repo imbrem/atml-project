@@ -39,14 +39,12 @@ def get_parameters_for_task(task_id):
         parameters['max_iters'] = 300
         parameters['n_validation'] = 50
         parameters['state_size'] = 5
-        parameters['annotation_size'] = 1
 
     elif task_id == 16:
         parameters['learning_rate'] = 0.01
         parameters['max_iters'] = 600
         parameters['n_validation'] = 50
         parameters['state_size'] = 6
-        parameters['annotation_size'] = 1
 
     elif task_id == 18:
         parameters['learning_rate'] = 0.01
