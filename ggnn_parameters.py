@@ -53,7 +53,7 @@ def get_parameters_for_task(task_id):
         parameters['max_iters'] = 400
         parameters['n_validation'] = 50
         parameters['state_size'] = 3
-        parameters['annotation_size'] = 2
+        parameters['annotation_size'] = 2,
         parameters['hidden_size'] = 3,
         parameters['mode'] = 'graph_level'
 
