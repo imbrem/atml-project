@@ -10,7 +10,6 @@ from ggnns.base_ggnn import BaseGraphLevelGGNN
 from torch import nn
 import ggnn_parameters
 import torch
-import wandb
 import os
 import argparse
 
@@ -153,6 +152,7 @@ def run_experiment(task_id, dataset='babi_graph', all_data=False, patience=0,
                 raise NotImplementedError()
 
             if log:
+                import wandb
                 wandb.watch(model)
                 wandb.config.update(params)
                 wandb.log({'n_parameters': model.count_parameters()})
