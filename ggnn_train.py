@@ -10,8 +10,8 @@ from ggnns.base_ggnn import BaseGraphLevelGGNN
 from torch import nn
 import ggnn_parameters
 import torch
-import os
 import wandb
+import os
 import argparse
 
 SEED = 8
@@ -79,8 +79,6 @@ def train_epoch(train_loader, model, optimizer, criterion):
                     edge_attr=data.edge_attr,
                     batch=data.batch)
 
-        print(out)
-        print(out.size())
         loss = criterion(out.permute(0, 2, 1), data.y)
         loss.backward()
 
@@ -116,7 +114,9 @@ def evaluate(loader, model, criterion):
 
 
 def run_experiment(task_id, dataset='babi_graph', all_data=False, patience=0,
-                   log=False):
+                   log=True):
+    if log:
+        wandb.init(project='ggsnn')
     params = ggnn_parameters.get_parameters_for_task(task_id)
     n_train_to_try = params['n_train_to_try'] if not all_data else [0]
 
