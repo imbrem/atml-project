@@ -10,7 +10,7 @@ from torch_geometric.utils import softmax
 from torch_geometric.nn.conv import MessagePassing
 from torch.nn import Parameter as Param
 from torch_geometric.nn.inits import glorot
-from torch_geometric.nn import GlobalAttention, global_add_pool
+from torch_geometric.nn import global_add_pool
 
 
 def make_ggnn(
@@ -131,7 +131,8 @@ class BaseNodeSelectionGGNN(nn.Module):
 class BaseGraphLevelGGNN(nn.Module):
     def __init__(self, state_size: int, num_layers: int,
                  aggr: str = 'add',
-                 bias: bool = True, total_edge_types: int = 4, annotation_size=1,
+                 bias: bool = True, total_edge_types: int = 4,
+                 annotation_size=1,
                  classification_categories=2, **kwargs):
         super(BaseGraphLevelGGNN, self).__init__()
         self.ggnn = BaseGGNN(state_size=state_size,
@@ -139,11 +140,13 @@ class BaseGraphLevelGGNN(nn.Module):
                              bias=bias, total_edge_types=total_edge_types,
                              **kwargs)
         self.key_nn = nn.Sequential(
-            nn.Linear(state_size + annotation_size, state_size + annotation_size),
+            nn.Linear(state_size + annotation_size,
+                      state_size + annotation_size),
             nn.Sigmoid()
         )
         self.value_nn = nn.Sequential(
-            nn.Linear(state_size + annotation_size, state_size + annotation_size),
+            nn.Linear(state_size + annotation_size,
+                      state_size + annotation_size),
             nn.Tanh()
         )
         self.final_activation = nn.Tanh()
@@ -155,7 +158,8 @@ class BaseGraphLevelGGNN(nn.Module):
     def forward(self, x, edge_index, edge_attr, batch):
         out = self.ggnn(x, edge_index, edge_attr)
         out = torch.cat([out, x], dim=1)
-        out = global_add_pool(self.key_nn(out) * self.value_nn(out), batch=batch)
+        out = global_add_pool(self.key_nn(out) * self.value_nn(out),
+                              batch=batch)
         out = self.final_activation(out)
 
         out = self.classification_layer(out)
