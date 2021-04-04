@@ -7,6 +7,7 @@ def get_default_parameters():
                   'hidden_size': 50,
                   'state_size': 4,  # dimensionality of node representations
                   'annotation_size': 1,  # number of node annotations
+                  'n_layers': 5,
                   'n_targets': 1,
                   'n_steps': 5,
                   'n_train_to_try': [50],
