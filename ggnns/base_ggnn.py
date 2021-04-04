@@ -10,6 +10,7 @@ from torch_geometric.utils import softmax
 from torch_geometric.nn.conv import MessagePassing
 from torch.nn import Parameter as Param
 from torch_geometric.nn.inits import glorot
+from torch_geometric.nn import GlobalAttention, global_add_pool
 
 
 def make_ggnn(
@@ -82,7 +83,6 @@ class BaseGGNN(MessagePassing):
 
         for i in range(self.num_layers):
             m = torch.matmul(x, self.weight[i])
-            # propagate_type: (x: Tensor, edge_weight: OptTensor)
             m = self.propagate(edge_index, x=m,
                                edge_attr=edge_attr,
                                size=None)
@@ -95,16 +95,11 @@ class BaseGGNN(MessagePassing):
         edge_attr: tensor of size (n, e) - n is the number of edges, e is the
         total number of edge types
         """
-        # print(torch.bmm(torch.einsum("ab,bcd->acd", (edge_attr,
-        # self.edge_type_weight)), x_j.unsqueeze(-1)).size())
         return x_j if edge_attr is None else \
             torch.bmm(
                 torch.einsum("ab,bcd->acd", (edge_attr, self.edge_type_weight)),
                 x_j.unsqueeze(-1)).squeeze() + \
             self.edge_type_bias.repeat(x_j.size(0), 1)
-
-    # def message_and_aggregate(self, adj_t: SparseTensor, x: Tensor) -> Tensor:
-    #     return matmul(adj_t, x, reduce=self.aggr)
 
     def __repr__(self):
         return '{}({}, num_layers={})'.format(self.__class__.__name__,
@@ -131,3 +126,37 @@ class BaseNodeSelectionGGNN(nn.Module):
         size = batch[-1].item() + 1
         out = self.ggnn(x, edge_index, edge_attr)
         return softmax(self.mlp(out), batch, num_nodes=size).view(size, -1)
+
+
+class BaseGraphLevelGGNN(nn.Module):
+    def __init__(self, state_size: int, num_layers: int,
+                 aggr: str = 'add',
+                 bias: bool = True, total_edge_types: int = 4, annotation_size=1,
+                 classification_categories=2, **kwargs):
+        super(BaseGraphLevelGGNN, self).__init__()
+        self.ggnn = BaseGGNN(state_size=state_size,
+                             num_layers=num_layers, aggr=aggr,
+                             bias=bias, total_edge_types=total_edge_types,
+                             **kwargs)
+        self.key_nn = nn.Sequential(
+            nn.Linear(state_size + annotation_size, state_size + annotation_size),
+            nn.Sigmoid()
+        )
+        self.value_nn = nn.Sequential(
+            nn.Linear(state_size + annotation_size, state_size + annotation_size),
+            nn.Tanh()
+        )
+        self.final_activation = nn.Tanh()
+        self.classification_layer = nn.Sequential(
+            nn.Linear(state_size + annotation_size, classification_categories),
+            nn.Softmax(dim=1)
+        )
+
+    def forward(self, x, edge_index, edge_attr, batch):
+        out = self.ggnn(x, edge_index, edge_attr)
+        out = torch.cat([out, x], dim=1)
+        out = global_add_pool(self.key_nn(out) * self.value_nn(out), batch=batch)
+        out = self.final_activation(out)
+
+        out = self.classification_layer(out)
+        return out

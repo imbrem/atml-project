@@ -63,7 +63,7 @@ class GraphLevelGGNN(Module):
         # Step 4: pass this through the attention layer
         x = self.attention_layer(x, batch)
 
-        # Step 5: pass this through the final layer, if 
+        # Step 5: pass this through the final layer, if
         if self.final_layer is not None:
             x = self.final_layer(x)
 
