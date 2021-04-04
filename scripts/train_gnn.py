@@ -8,7 +8,7 @@ from torch_geometric.data import DataLoader
 
 from scripts.arguments import parse_arguments
 from data import get_train_val_test_datasets
-from gnns.base_ggnn import BaseNodeSelectionGGNN
+from ggnns.base_ggnn import BaseNodeSelectionGGNN, BaseGraphLevelGGNN
 
 
 def initialise_experiments():
@@ -23,8 +23,15 @@ def initialise_experiments():
     val_loader = DataLoader(val_dataset, batch_size=len(val_dataset), shuffle=False)
     test_loader = DataLoader(test_dataset, batch_size=len(test_dataset), shuffle=False)
     # model = EdgeNet(args.annotation_size, args.edge_attr_size)
-    model = BaseNodeSelectionGGNN(state_size=args.annotation_size, num_layers=args.num_layers, ggnn_impl="team2",
-                                  total_edge_types=total_edge_types, out_channels=args.annotation_size)
+
+    if args.task_id != 18:
+        model = BaseNodeSelectionGGNN(state_size=args.annotation_size, num_layers=args.num_layers, ggnn_impl="team2",
+                                      total_edge_types=total_edge_types, out_channels=args.annotation_size)
+    else:
+        assert args.annotation_size == 2
+        model = BaseGraphLevelGGNN(annotation_size=args.annotation_size, num_layers=args.num_layers, ggnn_impl="team2",
+                                   total_edge_types=total_edge_types, classification_categories=2,
+                                   state_size=args.state_size)
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
     evaluation_interval = args.evaluation_interval

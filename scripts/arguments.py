@@ -13,7 +13,8 @@ def parse_arguments():
 
     parser.add_argument('--question-id', '-qi', type=int, default=0, help="type of the question")
     parser.add_argument('--task-id', '-ti', type=int, default=4, help="type of the task")
-    parser.add_argument('--annotation-size', '-as', type=int, default=6, help="size of annotations")
+    parser.add_argument('--annotation-size', '-as', type=int, default=1, help="size of annotations")
+    parser.add_argument('--state-size', '-ss', type=int, default=6, help="size of hidden states")
     parser.add_argument('--edge-attr-size', '-eas', type=int, default=4, help="size of edge attributes")
     parser.add_argument('--train-examples', '-te', type=int, default=50, help="total training examples to use")
     return parser.parse_args()

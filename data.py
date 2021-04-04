@@ -75,14 +75,6 @@ def find_max_task_id(data_list):
     return max_node_id
 
 
-# def split_set(data_list):
-#     # This is a horrible piece of code and should never be used
-#     n_examples = len(data_list)
-#     idx = range(n_examples)
-#     train = idx[:50]
-#     val = idx[-50:]
-#     return np.array(data_list, dtype=object)[train], np.array(data_list, dtype=object)[val]
-
 def split_train_and_val(data_list):
     n_examples = len(data_list)
     split_point = int(n_examples * 0.95)
@@ -102,9 +94,9 @@ def data_convert(data_list, n_annotation_dim):
             task_type = target[0]
             task_output = target[-1]
             annotation = np.zeros([n_nodes, n_annotation_dim])
-            annotation[target[1]-1][0] = 1
-            task_data_list[task_type -
-                           1].append([edge_list, annotation, task_output])
+            for n, n_element in enumerate(target[1:-1]):
+                annotation[n_element-1][n] = 1
+            task_data_list[task_type - 1].append([edge_list, annotation, task_output])
     return task_data_list
 
 
@@ -152,7 +144,7 @@ class bAbIDataset:
     Load bAbI tasks for GGNN
     """
 
-    def __init__(self, path, question_id, train_val_test_type, train_examples=None):
+    def __init__(self, path, question_id, train_val_test_type, train_examples=None, annotation_size=1):
         all_data = load_graphs_from_file(path)
         self.n_edge_types = find_max_edge_id(all_data)
         self.n_tasks = find_max_task_id(all_data)
@@ -161,15 +153,15 @@ class bAbIDataset:
         all_task_train_data, all_task_val_data = split_train_and_val(all_data)
 
         if train_val_test_type == "train":
-            all_task_train_data = data_convert(all_task_train_data, 1)
+            all_task_train_data = data_convert(all_task_train_data, annotation_size)
             self.data = all_task_train_data[question_id]
             if len(self.data) > train_examples:
                 self.data = self.data[:train_examples]
         elif train_val_test_type == "val":
-            all_task_val_data = data_convert(all_task_val_data, 1)
+            all_task_val_data = data_convert(all_task_val_data, annotation_size)
             self.data = all_task_val_data[question_id]
         elif train_val_test_type == "test":
-            all_task_test_data = data_convert(all_data, 1)
+            all_task_test_data = data_convert(all_data, annotation_size)
             self.data = all_task_test_data[question_id]
         else:
             raise AssertionError
@@ -182,13 +174,17 @@ class bAbIDataset:
 
 
 def get_train_val_test_datasets(babi_data_path, task_id, question_id, train_examples):
+    if int(task_id) == 18:
+        annotation_size = 2
+    else:
+        annotation_size = 1
     train_dataset = bAbIDataset(os.path.join(babi_data_path, "processed_1", "train", "{}_graphs.txt".format(task_id)),
-                       question_id, "train", train_examples)
+                       question_id, "train", train_examples, annotation_size=annotation_size)
     return train_dataset, \
         bAbIDataset(os.path.join(babi_data_path, "processed_1", "train", "{}_graphs.txt".format(task_id)),
-                    question_id, "val"), \
+                    question_id, "val", annotation_size=annotation_size), \
         bAbIDataset(os.path.join(babi_data_path, "processed_1", "test", "{}_graphs.txt".format(task_id)),
-                    question_id, "test"), \
+                    question_id, "test", annotation_size=annotation_size), \
         train_dataset.n_edge_types * 2
 
 
