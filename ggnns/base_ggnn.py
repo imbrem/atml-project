@@ -164,3 +164,6 @@ class BaseGraphLevelGGNN(nn.Module):
 
         out = self.classification_layer(out)
         return out
+
+    def count_parameters(self):
+        return sum(p.numel() for p in self.parameters() if p.requires_grad)
