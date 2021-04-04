@@ -128,6 +128,9 @@ class BaseNodeSelectionGGNN(nn.Module):
         return torch.unsqueeze(softmax(self.mlp(out), batch,
                                       num_nodes=size).view(size, -1), dim=1)
 
+    def count_parameters(self):
+        return sum(p.numel() for p in self.parameters() if p.requires_grad)
+
 
 class BaseGraphLevelGGNN(nn.Module):
     def __init__(self, state_size: int, num_layers: int,

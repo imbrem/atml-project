@@ -40,13 +40,13 @@ def train(train_loader, val_loader, model, optimizer,
 
         if log:
             wandb.log({'train_loss_{}'.format(run_desc): train_loss,
-                       'train_accuracy_{}'.format(run_desc): train_accuracy})
+                       'train_acc_{}'.format(run_desc): train_accuracy})
 
         # Validation
         val_loss, val_accuracy = evaluate(val_loader, model, criterion)
         if log:
             wandb.log({'val_loss_{}'.format(run_desc): val_loss,
-                       'val_accuracy_{}'.format(run_desc): val_accuracy})
+                       'val_acc_{}'.format(run_desc): val_accuracy})
 
         if best_val_loss is None or val_loss < best_val_loss - delta:
             iters = 0
@@ -111,7 +111,7 @@ def evaluate(loader, model, criterion):
     return total_loss / total_examples, total_correct / total_examples
 
 
-def run_experiment(task_id, dataset='babi_graph', all_data=False, patience=0,
+def run_experiment(task_id, dataset='babi_graph', all_data=False, patience=250,
                    log=True):
     if log:
         wandb.init(project='ggsnn')
@@ -163,7 +163,7 @@ def run_experiment(task_id, dataset='babi_graph', all_data=False, patience=0,
             # Train the model and obtain best train and validation performance
             model, fold_performance = train(train_loader, val_loader, model,
                                             optimizer, criterion,
-                                            params, run_desc, patience, log)
+                                            params, run_desc, patience, log=log)
 
             if log:
                 # Logging train and validation performance for fold
@@ -188,13 +188,13 @@ def run_experiment(task_id, dataset='babi_graph', all_data=False, patience=0,
         final_performances = list(
             torch.tensor(fold_performances).mean(dim=0).numpy())
         if log:
-            wandb.run.summary['train_loss_{}'.format(n_train)] = \
+            wandb.run.summary['final_train_loss_{}'.format(n_train)] = \
                 final_performances[0]
-            wandb.run.summary['val_loss_{}'.format(n_train)] = \
+            wandb.run.summary['final_val_loss_{}'.format(n_train)] = \
                 final_performances[1]
-            wandb.run.summary['train_acc_{}'.format(n_train)] = \
+            wandb.run.summary['final_train_acc_{}'.format(n_train)] = \
                 final_performances[2]
-            wandb.run.summary['val_acc_{}'.format(n_train)] = \
+            wandb.run.summary['final_val_acc_{}'.format(n_train)] = \
                 final_performances[3]
 
         final_test_means = list(torch.tensor(
