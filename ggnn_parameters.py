@@ -3,7 +3,6 @@ from baselines_data import get_max_token_id
 
 def get_default_parameters():
     parameters = {'task_id': 4,
-                  'embedding_size': 50,
                   'hidden_size': 50,
                   'state_size': 4,  # dimensionality of node representations
                   'annotation_size': 1,  # number of node annotations
