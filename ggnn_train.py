@@ -131,7 +131,7 @@ def run_experiment(task_id, dataset='babi_graph', all_data=False, patience=0):
             if params['mode'] == 'graph_level':
                 model = BaseGraphLevelGGNN(
                     annotation_size=params['annotation_size'],
-                    num_layers=params['num_layers'], ggnn_impl='team2',
+                    num_layers=params['n_layers'], ggnn_impl='team2',
                     total_edge_types=n_edge_types, classification_categories=2,
                     state_size=params['state_size']).to(
                     device)
