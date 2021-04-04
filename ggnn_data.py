@@ -340,10 +340,10 @@ def get_data_loaders(params, fold_id, n_train, dataset='babi_graph'):
                               batch_size=params['batch_size'],
                               shuffle=True)
     val_loader = DataLoader(val_dataset,
-                            batch_size=params['batch_size'],
+                            batch_size=len(val_dataset),
                             shuffle=True)
     test_loader = DataLoader(test_dataset,
-                             batch_size=params['batch_size'],
+                             batch_size=len(test_dataset),
                              shuffle=True)
 
     return train_loader, val_loader, test_loader
