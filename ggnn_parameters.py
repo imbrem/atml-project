@@ -38,7 +38,6 @@ def get_parameters_for_task(task_id):
         parameters['learning_rate'] = 0.005
         parameters['max_iters'] = 300
         parameters['n_validation'] = 50
-        # TODO wth is statedim
         parameters['state_size'] = 5
         parameters['annotation_size'] = 1
 

@@ -37,17 +37,17 @@ def make_ggnn(
 
 # Adapted from the torch_geometric implementation to support edge_attr
 class BaseGGNN(MessagePassing):
-    def __init__(self, state_size: int, out_channels: int, num_layers: int,
+    def __init__(self, state_size: int, num_layers: int,
                  aggr: str = 'add',
                  bias: bool = True, total_edge_types: int = 4, **kwargs):
         super(BaseGGNN, self).__init__(aggr=aggr)
 
         self.state_size = state_size
-        self.out_channels = out_channels
+        self.out_channels = state_size
         self.num_layers = num_layers
 
-        self.weight = Param(Tensor(num_layers, out_channels, out_channels))
-        self.rnn = torch.nn.GRUCell(state_size, out_channels, bias=bias)
+        self.weight = Param(Tensor(num_layers, state_size, state_size))
+        self.rnn = torch.nn.GRUCell(state_size, state_size, bias=bias)
 
         # edge_type_tensor should be of the type (e, D, D), where e is the
         # total number of edge types
