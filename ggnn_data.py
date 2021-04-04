@@ -11,8 +11,7 @@ https://github.com/chingyaoc/ggnn.pytorch/blob/master/utils/data/dataloader.py
 import os
 import numpy as np
 import torch
-from torch.utils.data import DataLoader
-from torch_geometric.data import Data
+from torch_geometric.data import Data, DataLoader
 import baselines_data
 from pathlib import Path
 
