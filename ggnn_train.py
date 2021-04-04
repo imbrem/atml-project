@@ -161,13 +161,13 @@ def run_experiment(task_id, all_data=False, patience=0):
                                             params, run_desc, patience)
 
             # Logging train and validation performance for fold
-            wandb.run.summary['final_train_loss_{}'.format(run_desc)] = \
+            wandb.run.summary['train_loss_{}'.format(run_desc)] = \
                 fold_performance[0]
-            wandb.run.summary['final_val_loss_{}'.format(run_desc)] = \
+            wandb.run.summary['val_loss_{}'.format(run_desc)] = \
                 fold_performance[1]
-            wandb.run.summary['final_train_acc_{}'.format(run_desc)] = \
+            wandb.run.summary['train_acc_{}'.format(run_desc)] = \
                 fold_performance[2]
-            wandb.run.summary['final_val_acc_{}'.format(run_desc)] = \
+            wandb.run.summary['val_acc_{}'.format(run_desc)] = \
                 fold_performance[3]
             fold_performances.append(fold_performance)
 
