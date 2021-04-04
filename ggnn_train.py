@@ -92,21 +92,23 @@ def train_epoch(train_loader, model, optimizer, criterion):
 def evaluate(loader, model, criterion):
     model.eval()
     total_loss = 0.
-    total = 0.
-    correct = 0.
-    for sequences, targets in loader:
-        sequences, targets = sequences.to(device), targets.to(device)
+    total_examples = 0.
+    total_correct = 0.
+    for data in loader:
+        data = data.to(device)
 
-        outputs, _ = model(sequences)
-        loss = criterion(outputs.permute(0, 2, 1), targets)
-        total_loss += loss.item()
-        correct += (outputs.argmax(dim=-1).eq(targets)).all(dim=1).sum()
-        total += len(targets)
+        out = model(x=data.x,
+                    edge_index=data.edge_index,
+                    edge_attr=data.edge_attr,
+                    batch=data.batch)
+        loss = criterion(out.permute(0, 2, 1), data.y)
 
-    mean_loss = total_loss / len(loader)
-    acc = correct / total
-    assert (correct <= total)
-    return mean_loss, acc
+        examples = data.y.size(0)
+        total_loss += loss.item() * examples
+        total_examples += examples
+        total_correct += (out.argmax(dim=-1).eq(data.y)).all(dim=1).sum()
+
+    return total_loss / total_examples, total_correct / total_examples
 
 
 def run_experiment(task_id, all_data=False, patience=0):
