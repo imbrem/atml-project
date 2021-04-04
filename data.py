@@ -173,17 +173,17 @@ class bAbIDataset:
         return len(self.data)
 
 
-def get_train_val_test_datasets(babi_data_path, task_id, question_id, train_examples):
+def get_train_val_test_datasets(babi_data_path, task_id, question_id, train_examples, fold_id=1):
     if int(task_id) == 18:
         annotation_size = 2
     else:
         annotation_size = 1
-    train_dataset = bAbIDataset(os.path.join(babi_data_path, "processed_1", "train", "{}_graphs.txt".format(task_id)),
+    train_dataset = bAbIDataset(os.path.join(babi_data_path, "processed_{}".format(fold_id), "train", "{}_graphs.txt".format(task_id)),
                        question_id, "train", train_examples, annotation_size=annotation_size)
     return train_dataset, \
-        bAbIDataset(os.path.join(babi_data_path, "processed_1", "train", "{}_graphs.txt".format(task_id)),
+        bAbIDataset(os.path.join(babi_data_path, "processed_{}".format(fold_id), "train", "{}_graphs.txt".format(task_id)),
                     question_id, "val", annotation_size=annotation_size), \
-        bAbIDataset(os.path.join(babi_data_path, "processed_1", "test", "{}_graphs.txt".format(task_id)),
+        bAbIDataset(os.path.join(babi_data_path, "processed_{}".format(fold_id), "test", "{}_graphs.txt".format(task_id)),
                     question_id, "test", annotation_size=annotation_size), \
         train_dataset.n_edge_types * 2
 
