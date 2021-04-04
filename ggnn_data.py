@@ -349,6 +349,19 @@ def get_data_loaders(params, fold_id, n_train, dataset='babi_graph'):
     return train_loader, val_loader, test_loader
 
 
+def get_n_edge_types(params, task_id):
+    fold_id = 1
+    filename = get_data_filename(params['root_dir'], fold_id, task_id,
+                                 split='train')
+    filename = filename.parent / '{}_edge_types.txt'.format(task_id)
+    n_lines = 0
+    with open(filename, 'r') as f:
+        for _ in f:
+            n_lines += 1
+
+    return n_lines
+
+
 if __name__ == "__main__":
     from torch_geometric.data import DataLoader
 
