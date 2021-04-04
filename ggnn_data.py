@@ -208,7 +208,7 @@ def get_data_filename(root_dir, fold_id, task_id, split):
     return filename
 
 
-# TODO implement n_targets
+# TODO implement n_targets for task 19
 class BabiGraphDataset:
     """
     Load bAbI tasks for GGNN
@@ -226,15 +226,15 @@ class BabiGraphDataset:
 
         if split == 'train':
             all_task_train_data = data_convert(all_task_train_data, 1)
-            self.data = all_task_train_data[task_id]
+            self.data = all_task_train_data[0]
             if len(self.data) > n_train:
                 self.data = self.data[:n_train]
         elif split == 'validation':
             all_task_val_data = data_convert(all_task_val_data, 1)
-            self.data = all_task_val_data[task_id]
+            self.data = all_task_val_data[0]
         elif split == 'test':
             all_task_test_data = data_convert(all_data, 1)
-            self.data = all_task_test_data[task_id]
+            self.data = all_task_test_data[0]
 
     def __getitem__(self, index):
         return create_pg_graph(self.data[index], n_edge_types=self.n_edge_types)
