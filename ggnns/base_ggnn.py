@@ -108,11 +108,11 @@ class BaseGGNN(MessagePassing):
 
 
 class BaseNodeSelectionGGNN(nn.Module):
-    def __init__(self, state_size: int, out_channels: int, num_layers: int,
+    def __init__(self, state_size: int, num_layers: int,
                  aggr: str = 'add',
                  bias: bool = True, total_edge_types: int = 4, **kwargs):
         super(BaseNodeSelectionGGNN, self).__init__()
-        self.ggnn = BaseGGNN(state_size=state_size, out_channels=out_channels,
+        self.ggnn = BaseGGNN(state_size=state_size,
                              num_layers=num_layers, aggr=aggr,
                              bias=bias, total_edge_types=total_edge_types,
                              **kwargs)
@@ -179,4 +179,6 @@ class BaseGraphLevelGGNN(nn.Module):
         return torch.unsqueeze(out, 1)
 
     def count_parameters(self):
+        # for name in self.named_parameters():
+        #     print(name)
         return sum(p.numel() for p in self.parameters() if p.requires_grad)

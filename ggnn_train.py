@@ -144,8 +144,6 @@ def run_experiment(task_id, dataset='babi_graph', all_data=False, patience=250,
             elif params['mode'] == 'node_level':
                 model = BaseNodeSelectionGGNN(
                     state_size=params['state_size'],
-                    # TODO: out_channels -> state_size
-                    out_channels=params['state_size'],
                     num_layers=params['n_layers'],
                     total_edge_types=n_edge_types).to(
                     device)
