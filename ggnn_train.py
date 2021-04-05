@@ -6,7 +6,7 @@ Adapted from Yujia Li,
 """
 
 from ggnn_data import get_data_loaders, get_n_edge_types
-from ggnns.base_ggnn import BaseGraphLevelGGNN
+from ggnns.base_ggnn import BaseGraphLevelGGNN, BaseNodeSelectionGGNN
 from torch import nn
 import ggnn_parameters
 import torch
@@ -135,13 +135,20 @@ def run_experiment(task_id, dataset='babi_graph', all_data=False, patience=250,
             run_desc = 'ggnn_fold_{}_n_train_{}'.format(fold_id, n_train)
             if params['mode'] == 'graph_level':
                 model = BaseGraphLevelGGNN(
+                    state_size=params['state_size'],
+                    num_layers=params['n_layers'],
+                    total_edge_types=n_edge_types,
                     annotation_size=params['annotation_size'],
-                    num_layers=params['n_layers'], ggnn_impl='team2',
-                    total_edge_types=n_edge_types, classification_categories=2,
-                    state_size=params['state_size']).to(
+                    classification_categories=2).to(
                     device)
             elif params['mode'] == 'node_level':
-                raise NotImplementedError()
+                model = BaseNodeSelectionGGNN(
+                    state_size=params['state_size'],
+                    # TODO: out_channels -> state_size
+                    out_channels=params['state_size'],
+                    num_layers=params['n_layers'],
+                    total_edge_types=n_edge_types).to(
+                    device)
             elif params['mode'] == 'seq_graph_level':
                 raise NotImplementedError()
             elif params['mode'] == 'share_seq_graph_level':
