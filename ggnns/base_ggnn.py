@@ -7,10 +7,10 @@ from torch import Tensor
 import torch_geometric
 from torch import nn
 from torch_geometric.utils import softmax
-from torch_geometric.nn.conv import MessagePassing
+from torch_geometric.nn.conv import MessagePassing, GatedGraphConv
 from torch.nn import Parameter as Param
 from torch_geometric.nn.inits import glorot
-from torch_geometric.nn import global_add_pool
+from torch_geometric.nn import GlobalAttention, global_add_pool
 
 
 def make_ggnn(
@@ -143,28 +143,32 @@ class BaseGraphLevelGGNN(nn.Module):
                              num_layers=num_layers, aggr=aggr,
                              bias=bias, total_edge_types=total_edge_types,
                              **kwargs)
-        self.key_nn = nn.Sequential(
-            nn.Linear(state_size + annotation_size,
-                      state_size + annotation_size),
+        self.processing_net1 = nn.Sequential(
+            nn.Linear(state_size+annotation_size, 2 * (state_size+annotation_size)),
+            nn.ReLU(),
+            nn.Linear(2 * (state_size+annotation_size), state_size+annotation_size),
             nn.Sigmoid()
         )
-        self.value_nn = nn.Sequential(
-            nn.Linear(state_size + annotation_size,
-                      state_size + annotation_size),
+        self.processing_net2 = nn.Sequential(
+            nn.Linear(state_size + annotation_size, 2 * (state_size + annotation_size)),
+            nn.ReLU(),
+            nn.Linear(2 * (state_size + annotation_size), state_size + annotation_size),
             nn.Tanh()
         )
-        self.final_activation = nn.Tanh()
         self.classification_layer = nn.Sequential(
-            nn.Linear(state_size + annotation_size, classification_categories),
+            nn.Linear(state_size+annotation_size, 2 * classification_categories),
+            nn.ReLU(inplace=True),
+            nn.Linear(2 * classification_categories, classification_categories),
             nn.Softmax(dim=1)
         )
 
     def forward(self, x, edge_index, edge_attr, batch):
         out = self.ggnn(x, edge_index, edge_attr)
         out = torch.cat([out, x], dim=1)
-        out = global_add_pool(self.key_nn(out) * self.value_nn(out),
-                              batch=batch)
-        out = self.final_activation(out)
+        processed1 = self.processing_net1(out)
+        processed2 = self.processing_net2(out)
+
+        out = global_add_pool(processed1 * processed2, batch=batch)
 
         out = self.classification_layer(out)
         return torch.unsqueeze(out, 1)
