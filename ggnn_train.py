@@ -119,6 +119,10 @@ def run_experiment(task_id, dataset='babi_graph', all_data=False, patience=250,
     params = ggnn_parameters.get_parameters_for_task(task_id)
     n_train_to_try = params['n_train_to_try'] if not all_data else [0]
 
+    if dataset == 'sequential_graph':
+        params['state_size'] = params['max_token_id']
+        params['annotation_size'] = params['max_token_id']
+
     torch.manual_seed(SEED)
     torch.set_num_threads(N_THREADS)
 
@@ -223,6 +227,7 @@ if __name__ == "__main__":
     parser.add_argument('--task_id', '-ti', type=int, default=4)
     parser.add_argument('--dataset', type=str, default='babi_graph',
                         choices=['babi_graph', 'sequential_graph'])
+    parser.add_argument('--all_data', type=bool, default=False)
     parser.add_argument('--log', '-log', type=bool, default=True)
     args = parser.parse_args()
-    run_experiment(task_id=args.task_id, log=args.log)
+    run_experiment(task_id=args.task_id, log=args.log, dataset=args.dataset)
