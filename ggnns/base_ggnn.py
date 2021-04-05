@@ -7,10 +7,10 @@ from torch import Tensor
 import torch_geometric
 from torch import nn
 from torch_geometric.utils import softmax
-from torch_geometric.nn.conv import MessagePassing, GatedGraphConv
+from torch_geometric.nn.conv import MessagePassing
 from torch.nn import Parameter as Param
 from torch_geometric.nn.inits import glorot
-from torch_geometric.nn import GlobalAttention, global_add_pool
+from torch_geometric.nn import global_add_pool
 
 
 def make_ggnn(
@@ -126,7 +126,7 @@ class BaseNodeSelectionGGNN(nn.Module):
         size = batch[-1].item() + 1
         out = self.ggnn(x, edge_index, edge_attr)
         return torch.unsqueeze(softmax(self.mlp(out), batch,
-                                      num_nodes=size).view(size, -1), dim=1)
+                                       num_nodes=size).view(size, -1), dim=1)
 
     def count_parameters(self):
         return sum(p.numel() for p in self.parameters() if p.requires_grad)
@@ -144,19 +144,24 @@ class BaseGraphLevelGGNN(nn.Module):
                              bias=bias, total_edge_types=total_edge_types,
                              **kwargs)
         self.processing_net1 = nn.Sequential(
-            nn.Linear(state_size+annotation_size, 2 * (state_size+annotation_size)),
+            nn.Linear(state_size + annotation_size,
+                      2 * (state_size + annotation_size)),
             nn.ReLU(),
-            nn.Linear(2 * (state_size+annotation_size), state_size+annotation_size),
+            nn.Linear(2 * (state_size + annotation_size),
+                      state_size + annotation_size),
             nn.Sigmoid()
         )
         self.processing_net2 = nn.Sequential(
-            nn.Linear(state_size + annotation_size, 2 * (state_size + annotation_size)),
+            nn.Linear(state_size + annotation_size,
+                      2 * (state_size + annotation_size)),
             nn.ReLU(),
-            nn.Linear(2 * (state_size + annotation_size), state_size + annotation_size),
+            nn.Linear(2 * (state_size + annotation_size),
+                      state_size + annotation_size),
             nn.Tanh()
         )
         self.classification_layer = nn.Sequential(
-            nn.Linear(state_size+annotation_size, 2 * classification_categories),
+            nn.Linear(state_size + annotation_size,
+                      2 * classification_categories),
             nn.ReLU(inplace=True),
             nn.Linear(2 * classification_categories, classification_categories),
             nn.Softmax(dim=1)
