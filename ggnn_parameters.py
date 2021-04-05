@@ -31,7 +31,6 @@ def get_parameters_for_task(task_id):
     if task_id == 4:
         parameters['learning_rate'] = 0.01
         parameters['max_iters'] = 100
-        # TODO implement n_validation parameter
         parameters['n_validation'] = 50
 
     elif task_id == 15:
@@ -47,7 +46,8 @@ def get_parameters_for_task(task_id):
         parameters['state_size'] = 6
 
     elif task_id == 18:
-        parameters['learning_rate'] = 0.01
+        # NOTE: original parameters['learning_rate'] = 0.01
+        parameters['learning_rate'] = 0.003
         parameters['max_iters'] = 400
         parameters['n_validation'] = 50
         parameters['state_size'] = 3
