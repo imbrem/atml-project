@@ -44,6 +44,7 @@ def initialise_experiments(fold_id=1):
 
 def train(train_loader, val_loader, test_loader, model, optimizer, criterion, eval_interval, total_epochs,
           save_final_checkpoint=False, checkpoint_directory=None):
+    max_val_acc = 0
     test_acc_to_return = 0
     for epoch in tqdm(range(1, total_epochs+1)):
         train_loss, train_accuracy = train_epoch(train_loader, model, optimizer, criterion)
@@ -53,7 +54,8 @@ def train(train_loader, val_loader, test_loader, model, optimizer, criterion, ev
             epoch_loss, epoch_accuracy = evaluate(train_loader, model, criterion)
             val_loss, val_accuracy = evaluate(val_loader, model, criterion)
             test_loss, test_accuracy = evaluate(test_loader, model, criterion)
-            if test_accuracy > test_acc_to_return:
+            if val_accuracy > max_val_acc:
+                max_val_acc = val_accuracy
                 test_acc_to_return = test_accuracy
             # wandb.log({'epoch_loss': epoch_loss, 'epoch_accuracy': epoch_accuracy}, step=epoch)
             # wandb.log({'val_loss': val_loss, 'val_accuracy': val_accuracy}, step=epoch)
