@@ -79,6 +79,7 @@ def train_epoch(train_loader, model, optimizer, criterion):
 
         loss = criterion(out.permute(0, 2, 1), data.y)
         loss.backward()
+        optimizer.step()
 
         examples = data.y.size(0)
         total_loss += loss.item() * examples
