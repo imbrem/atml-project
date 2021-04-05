@@ -362,7 +362,7 @@ def get_n_edge_types(params, task_id):
         for _ in f:
             n_lines += 1
 
-    return n_lines
+    return n_lines * 2
 
 
 if __name__ == "__main__":
