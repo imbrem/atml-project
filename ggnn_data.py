@@ -163,8 +163,9 @@ def get_sequential_graph(sequence, target):
     # sequence: [seq_len, max_node_id]
     # target: [n_targets]
     edge_index = torch.tensor(
-        (range(sequence.size(0)), range(1, sequence.size(0) + 1)),
+        (range(sequence.size(0)-1), range(1, sequence.size(0))),
         dtype=torch.long)
+    target = torch.unsqueeze(target, 1)
     return Data(x=sequence, edge_index=edge_index, y=target)
 
 
