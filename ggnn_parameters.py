@@ -60,6 +60,7 @@ def get_parameters_for_task(task_id):
         parameters['learning_rate'] = 0.005
         parameters['max_iters'] = 1000
         parameters['n_validation'] = 50
+        parameters['n_targets'] = 2
         parameters['state_size'] = 6
         parameters['annotation_size'] = 3
         parameters['mode'] = 'share_seq_graph_level'
