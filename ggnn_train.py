@@ -221,6 +221,8 @@ def run_experiment(task_id, dataset='babi_graph', all_data=False, patience=250,
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Experimental settings.')
     parser.add_argument('--task_id', '-ti', type=int, default=4)
+    parser.add_argument('--dataset', type=str, default='babi_graph',
+                        choices=['babi_graph', 'sequential_graph'])
     parser.add_argument('--log', '-log', type=bool, default=True)
     args = parser.parse_args()
     run_experiment(task_id=args.task_id, log=args.log)
