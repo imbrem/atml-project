@@ -25,13 +25,10 @@ def make_ggnn(
     Make a GGNN having a given implementation
     """
     if ggnn_impl == 'torch_geometric':
-        return torch_geometric.nn.GatedGraphConv(
-            out_channels=state_size, num_layers=num_layers, aggr=aggr,
-            bias=bias, **kwargs)
+        return torch_geometric.nn.GatedGraphConv(out_channels=state_size, num_layers=num_layers, aggr=aggr,
+                                                 bias=bias, **kwargs)
     elif ggnn_impl == 'team2':
-        return BaseGGNN(
-            state_size=state_size, num_layers=num_layers, aggr=aggr, bias=bias,
-            **kwargs)
+        return BaseGGNN(state_size=state_size, num_layers=num_layers, aggr=aggr, bias=bias, **kwargs)
     else:
         raise ValueError(f"Invalid GGNN implementation {ggnn_impl}")
 
@@ -179,6 +176,55 @@ class BaseGraphLevelGGNN(nn.Module):
         return torch.unsqueeze(out, 1)
 
     def count_parameters(self):
-        # for name in self.named_parameters():
-        #     print(name)
+        return sum(p.numel() for p in self.parameters() if p.requires_grad)
+
+
+class BaseGraphLevelGGSNN(nn.Module):
+    def __init__(self, state_size: int, num_layers: int, aggr: str = 'add',
+                 bias: bool = True, total_edge_types: int = 4,
+                 annotation_size=1, pred_steps=2, classification_categories=4, **kwargs):
+        super(BaseGraphLevelGGSNN, self).__init__()
+        self.pred_steps = pred_steps
+        self.ggnn = BaseGGNN(state_size=state_size, num_layers=num_layers, aggr=aggr,
+                             bias=bias, total_edge_types=total_edge_types,
+                             **kwargs)
+        self.processing_net1 = nn.Sequential(
+            nn.Linear(state_size + annotation_size,
+                      2 * (state_size + annotation_size)),
+            nn.ReLU(),
+            nn.Linear(2 * (state_size + annotation_size),
+                      state_size + annotation_size),
+            nn.Sigmoid()
+        )
+        self.processing_net2 = nn.Sequential(
+            nn.Linear(state_size + annotation_size,
+                      2 * (state_size + annotation_size)),
+            nn.ReLU(),
+            nn.Linear(2 * (state_size + annotation_size),
+                      state_size + annotation_size),
+            nn.Tanh()
+        )
+        self.classification_layer = nn.Sequential(
+            nn.Linear(state_size + annotation_size,
+                      2 * classification_categories),
+            nn.ReLU(inplace=True),
+            nn.Linear(2 * classification_categories, classification_categories),
+            nn.Softmax(dim=1)
+        )
+
+    def forward(self, x, edge_index, edge_attr, batch):
+        outputs = list()
+        latent = x
+        for _ in range(self.pred_steps):
+            latent = self.ggnn(latent, edge_index, edge_attr)
+            out = torch.cat([latent, x], dim=1)
+            processed1 = self.processing_net1(out)
+            processed2 = self.processing_net2(out)
+            out = global_add_pool(processed1 * processed2, batch=batch)
+            out = self.classification_layer(out)
+            outputs.append(out)
+        outputs = torch.stack(outputs, dim=1)
+        return outputs
+
+    def count_parameters(self):
         return sum(p.numel() for p in self.parameters() if p.requires_grad)

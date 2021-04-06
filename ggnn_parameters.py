@@ -12,7 +12,7 @@ def get_default_parameters():
                   'n_train_to_try': [50],
                   'n_validation': 100,  # number of validation instances
                   'learning_rate': 1e-3,
-                  'batch_size': 10,
+                  'batch_size': 2,
                   'max_iters': 1000,
                   'root_dir': 'babi_data',
                   'mode': 'node_level'

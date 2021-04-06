@@ -6,7 +6,7 @@ Adapted from Yujia Li,
 """
 
 from ggnn_data import get_data_loaders, get_n_edge_types
-from ggnns.base_ggnn import BaseGraphLevelGGNN, BaseNodeSelectionGGNN
+from ggnns.base_ggnn import BaseGraphLevelGGNN, BaseNodeSelectionGGNN, BaseGraphLevelGGSNN
 from torch import nn
 import ggnn_parameters
 import torch
@@ -76,7 +76,6 @@ def train_epoch(train_loader, model, optimizer, criterion):
                     edge_index=data.edge_index,
                     edge_attr=data.edge_attr,
                     batch=data.batch)
-
         loss = criterion(out.permute(0, 2, 1), data.y)
         loss.backward()
         optimizer.step()
@@ -97,7 +96,6 @@ def evaluate(loader, model, criterion):
     total_correct = 0.
     for data in loader:
         data = data.to(device)
-
         out = model(x=data.x,
                     edge_index=data.edge_index,
                     edge_attr=data.edge_attr,
@@ -154,7 +152,12 @@ def run_experiment(task_id, dataset='babi_graph', all_data=False, patience=250,
             elif params['mode'] == 'seq_graph_level':
                 raise NotImplementedError()
             elif params['mode'] == 'share_seq_graph_level':
-                raise NotImplementedError()
+                model = BaseGraphLevelGGSNN(
+                    state_size=params['state_size'],
+                    num_layers=params['n_layers'],
+                    total_edge_types=n_edge_types,
+                    annotation_size=params['annotation_size']
+                ).to(device)
             elif params['mode'] == 'share_seq_node_level':
                 raise NotImplementedError()
             else:
