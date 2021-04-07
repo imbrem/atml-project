@@ -22,6 +22,7 @@ def is_heap(l) -> bool:
             return False
     return True
 
+MAX_LEN=64
 
 def make_array(min_len: int = 1, max_len: int = MAX_LEN, p_heapify: float = 0.4) -> Tuple[List[int], bool]:
     result = []
