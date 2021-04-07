@@ -22,7 +22,9 @@ def is_heap(l) -> bool:
             return False
     return True
 
-MAX_LEN=64
+
+MAX_LEN = 64
+
 
 def make_array(min_len: int = 1, max_len: int = MAX_LEN, p_heapify: float = 0.4) -> Tuple[List[int], bool]:
     result = []
@@ -64,7 +66,7 @@ def nodes_to_datapoint(
     and_y: bool = True
 ):
     n = nodes.shape[0]
-    if random.random() < p_heap_graph:
+    if p_heap_graph is not None or random.random() < p_heap_graph:
         graph = heapgraph(n)
         is_hg = True
     else:
@@ -91,6 +93,6 @@ def nodes_to_datapoint(
     return data
 
 
-def make_datapoint(min_len: int = 1, max_len: int = MAX_LEN, p_heapify: float = 0.75, p_heap_graph: float = 0.75, and_y: bool = True) -> List[int]:
+def make_datapoint(min_len: int = 1, max_len: int = MAX_LEN, p_heapify: float = 0.75, p_heap_graph: Optional[float] = None, and_y: bool = True) -> List[int]:
     (nodes, is_heap) = make_array(min_len, max_len, p_heapify)
     return nodes_to_datapoint(nodes, is_heap, min_len=min_len, max_len=max_len, p_heap_graph=p_heap_graph, and_y=and_y)
