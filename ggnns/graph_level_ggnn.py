@@ -3,8 +3,8 @@
 import torch
 import torch.nn.functional
 from typing import Optional
-from ggnns.global_soft_attention import make_graph_attention
-from ggnns.base_ggnn import make_ggnn
+from global_soft_attention import make_graph_attention
+from base_ggnn import make_ggnn
 from torch.nn import Module
 
 
@@ -77,3 +77,31 @@ class GraphLevelGGNN(Module):
 
 def make_linear_gate_nn(annotation_size: int, hidden_size: int = 0) -> Module:
     return torch.nn.Linear(2 * annotation_size + hidden_size, 1)
+
+
+if __name__ == "__main__":
+    print("Node count mod 5 test for GraphLevelGGNN")
+    NO_ATTRIBUTES = 5
+    HIDDEN_SIZE = 10
+    NO_CYCLES = 20
+    print(
+        f"Generating cycle data (attributes = {NO_ATTRIBUTES}, cycles = {NO_CYCLES})...")
+    from cycle_data import *
+    cycles = list(mod_node_cycles(NO_CYCLES, mod_edge_no=5, no_attributes=NO_ATTRIBUTES))
+    print(f"Generated {len(cycles)} cycles")
+    data_loader = torch_geometric.data.DataLoader(cycles, batch_size=100)
+    print("Constructing GGNN...")
+    ggnn = GraphLevelGGNN(
+        annotation_size=NO_ATTRIBUTES,
+        num_layers=2,
+        gate_nn=nn.Linear(2 * NO_ATTRIBUTES + HIDDEN_SIZE, 1),
+        hidden_size=HIDDEN_SIZE
+    ).cuda()
+    print(f"GGNN: {ggnn}")
+    print("Setting up training...")
+    opt = torch.optim.Adam(ggnn.parameters(), lr=0.01)
+    losses = train(ggnn, data_loader, opt, torch.nn.NLLLoss())
+    print("Plotting losses...")
+    import matplotlib.pyplot as plt
+    plt.plot(losses)
+    plt.show()
