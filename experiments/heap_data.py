@@ -56,7 +56,7 @@ def make_heap_graph(n: int) -> DiGraph:
     assert is_heapgraph(result)
     return result
 
-
+# Convert an array, which may be a heap, into a data-point for the graph algorithm given
 def nodes_to_datapoint(
     nodes,
     is_heap,
