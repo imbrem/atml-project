@@ -38,8 +38,8 @@ def make_array(min_len: int = 1, max_len: int = MAX_LEN, p_heapify: float = 0.4)
         result_is_heap = is_heap(result)
     return (torch.tensor(result).view(n, -1), result_is_heap)
 
-
-def is_heapgraph(graph):
+# Check whether a graph is that of a heap
+def is_heap_graph(graph):
     for n, nbrs in graph.adj.items():
         for nbr in nbrs:
             if parent(nbr) != n:
