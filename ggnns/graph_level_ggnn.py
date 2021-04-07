@@ -3,8 +3,8 @@
 import torch
 import torch.nn.functional
 from typing import Optional
-from global_soft_attention import make_graph_attention
-from base_ggnn import make_ggnn
+from ggnns.global_soft_attention import make_graph_attention
+from ggnns.base_ggnn import make_ggnn
 from torch.nn import Module
 
 

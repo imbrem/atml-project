@@ -4,7 +4,7 @@ import torch_geometric
 from torch import nn
 import torch.nn.functional as F
 from typing import Union, List
-from base_ggnn import make_ggnn
+from ggnns.base_ggnn import make_ggnn
 from torch.nn import Module
 
 
