@@ -46,8 +46,8 @@ def is_heap_graph(graph):
                 return False
     return True
 
-
-def heapgraph(n: int) -> DiGraph:
+# Make the graph of a heap
+def make_heap_graph(n: int) -> DiGraph:
     result = DiGraph()
     result.add_nodes_from(range(0, n))
     result.add_edges_from(
