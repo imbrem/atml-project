@@ -9,12 +9,16 @@ import random
 import torch.nn as nn
 
 # Get the parent of an index into a heap
+
+
 def parent(i: int) -> Optional[int]:
     if i <= 0:
         return None
     return (i - 1) // 2
 
 # Check whether a list is a heap
+
+
 def is_heap(l) -> bool:
     for (i, e) in enumerate(l):
         p = parent(i)
@@ -26,6 +30,8 @@ def is_heap(l) -> bool:
 MAX_LEN = 64
 
 # Construct an array, with probability ~p_heapify of it being a heap, of length between min_len and max_len
+
+
 def make_array(min_len: int = 1, max_len: int = MAX_LEN, p_heapify: float = 0.4) -> Tuple[List[int], bool]:
     result = []
     n = random.randint(min_len, max_len)
@@ -39,6 +45,8 @@ def make_array(min_len: int = 1, max_len: int = MAX_LEN, p_heapify: float = 0.4)
     return (torch.tensor(result).view(n, -1), result_is_heap)
 
 # Check whether a graph is that of a heap
+
+
 def is_heap_graph(graph):
     for n, nbrs in graph.adj.items():
         for nbr in nbrs:
@@ -47,6 +55,8 @@ def is_heap_graph(graph):
     return True
 
 # Make the graph of a heap
+
+
 def make_heap_graph(n: int) -> DiGraph:
     result = DiGraph()
     result.add_nodes_from(range(0, n))
@@ -57,6 +67,8 @@ def make_heap_graph(n: int) -> DiGraph:
     return result
 
 # Convert an array, which may be a heap, into a graph datapoint for a GNN
+
+
 def nodes_to_gnn_datapoint(
     nodes,
     is_heap,
@@ -93,8 +105,21 @@ def nodes_to_gnn_datapoint(
     return data
 
 # Make a graph datapoint for a GNN
+
+
 def make_gnn_datapoint(min_len: int = 1, max_len: int = MAX_LEN, p_heapify: float = 0.75, p_heap_graph: Optional[float] = None, and_y: bool = True) -> List[int]:
     (nodes, is_heap) = make_array(min_len, max_len, p_heapify)
     return nodes_to_gnn_datapoint(nodes, is_heap, min_len=min_len, max_len=max_len, p_heap_graph=p_heap_graph, and_y=and_y)
 
 # Convert an array, which may be a heap, into a data point for an RNN
+
+
+def nodes_to_rnn_datapoint(
+    nodes,
+    is_heap,
+    min_len: int = 1,
+    max_len: int = MAX_LEN,
+    p_heap_graph: Optional[float] = None,
+    and_y: bool = True
+):
+    raise NotImplementedError()
