@@ -62,7 +62,7 @@ def nodes_to_datapoint(
     is_heap,
     min_len: int = 1,
     max_len: int = MAX_LEN,
-    p_heap_graph: Optional[float] = 0.75,
+    p_heap_graph: Optional[float] = None,
     and_y: bool = True
 ):
     n = nodes.shape[0]
