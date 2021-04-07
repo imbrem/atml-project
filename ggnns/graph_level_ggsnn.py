@@ -4,9 +4,9 @@ import torch_geometric
 from torch import nn
 import torch.nn.functional as F
 from typing import Union, List, Optional
-from global_soft_attention import make_graph_attention
-from per_node_ggnn import PerNodeLayer, make_per_node_hidden_layer
-from base_ggnn import make_ggnn
+from ggnns.global_soft_attention import make_graph_attention
+from ggnns.per_node_ggnn import PerNodeLayer, make_per_node_hidden_layer
+from ggnns.base_ggnn import make_ggnn
 from torch.nn import Module
 
 
