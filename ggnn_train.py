@@ -48,8 +48,7 @@ def train(train_loader, val_loader, model, optimizer,
             wandb.log({'val_loss_{}'.format(run_desc): val_loss,
                        'val_acc_{}'.format(run_desc): val_accuracy})
 
-        # if best_val_loss is None or val_loss < best_val_loss - delta:
-        if best_val_loss is None or val_loss < best_val_loss:
+        if best_val_loss is None or val_loss < best_val_loss - delta:
             iters = 0
             if log:
                 torch.save(model.state_dict(), os.path.join(wandb.run.dir,
