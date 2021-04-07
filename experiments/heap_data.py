@@ -25,7 +25,7 @@ def is_heap(l) -> bool:
 
 MAX_LEN = 64
 
-
+# Construct an array, with probability ~p_heapify of it being a heap, of length between min_len and max_len
 def make_array(min_len: int = 1, max_len: int = MAX_LEN, p_heapify: float = 0.4) -> Tuple[List[int], bool]:
     result = []
     n = random.randint(min_len, max_len)
