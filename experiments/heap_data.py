@@ -14,7 +14,7 @@ def parent(i: int) -> Optional[int]:
         return None
     return (i - 1) // 2
 
-
+# Check whether a list is a heap
 def is_heap(l) -> bool:
     for (i, e) in enumerate(l):
         p = parent(i)
