@@ -8,7 +8,7 @@ from heapq import heapify
 import random
 import torch.nn as nn
 
-
+# Get the parent of an index into a heap
 def parent(i: int) -> Optional[int]:
     if i <= 0:
         return None
