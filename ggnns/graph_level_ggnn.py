@@ -95,7 +95,8 @@ if __name__ == "__main__":
         annotation_size=NO_ATTRIBUTES,
         num_layers=2,
         gate_nn=nn.Linear(2 * NO_ATTRIBUTES + HIDDEN_SIZE, 1),
-        hidden_size=HIDDEN_SIZE
+        hidden_size=HIDDEN_SIZE,
+        final_layer=nn.Linear(2 * NO_ATTRIBUTES + HIDDEN_SIZE, 5)
     ).cuda()
     print(f"GGNN: {ggnn}")
     print("Setting up training...")
