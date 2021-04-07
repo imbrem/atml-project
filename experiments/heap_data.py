@@ -57,7 +57,7 @@ def make_heap_graph(n: int) -> DiGraph:
     return result
 
 # Convert an array, which may be a heap, into a graph datapoint for a GNN
-def nodes_to_datapoint(
+def nodes_to_gnn_datapoint(
     nodes,
     is_heap,
     min_len: int = 1,
@@ -96,3 +96,5 @@ def nodes_to_datapoint(
 def make_datapoint(min_len: int = 1, max_len: int = MAX_LEN, p_heapify: float = 0.75, p_heap_graph: Optional[float] = None, and_y: bool = True) -> List[int]:
     (nodes, is_heap) = make_array(min_len, max_len, p_heapify)
     return nodes_to_datapoint(nodes, is_heap, min_len=min_len, max_len=max_len, p_heap_graph=p_heap_graph, and_y=and_y)
+
+# Convert an array, which may be a heap, into a data point for an RNN
