@@ -24,7 +24,8 @@ class BaselineRNN(nn.Module):
     thereby changing the behaviour.
     """
 
-    def __init__(self, input_size, hidden_size, n_targets=1):
+    def __init__(self, input_size, hidden_size, embedding_size=50, n_targets=1,
+                 use_embeddings=False):
         super(BaselineRNN, self).__init__()
         self.input_size = input_size
         self.hidden_size = hidden_size
@@ -32,10 +33,19 @@ class BaselineRNN(nn.Module):
         self.n_targets = n_targets + (
             1 if n_targets > 1 else 0)  # special eos symbol
 
+        if use_embeddings:
+            self.input_size = embedding_size
+            self.embedding = nn.Embedding(num_embeddings=self.input_size + 1,
+                                          embedding_dim=embedding_size)
+        else:
+            self.embedding = nn.Identity()
+
         # note: i2h can be replicated by off-the-shelf RNN without the loop in
         # training, but with the loop for output generation.
-        self.i2h = nn.Linear(input_size + hidden_size, hidden_size)
-        self.h2o = nn.Linear(hidden_size, self.output_size)
+
+        self.i2h = nn.Linear(self.input_size + self.hidden_size,
+                             self.hidden_size)
+        self.h2o = nn.Linear(self.hidden_size, self.output_size)
 
     def forward(self, sequences):
         """
@@ -46,6 +56,8 @@ class BaselineRNN(nn.Module):
             max_token_id
             hidden: (batch, num_layers=1, hidden_size)
         """
+
+        sequences = self.embedding(sequences)
 
         # [batch_size, hidden_size]
         hidden = torch.zeros(sequences.size(0), self.hidden_size)
@@ -74,6 +86,7 @@ class BaselineRNN(nn.Module):
     def reset_parameters(self):
         self.i2h.reset_parameters()
         self.h2o.reset_parameters()
+        self.embedding.reset_parameters()
 
     def count_parameters(self):
         return sum(p.numel() for p in self.parameters() if p.requires_grad)

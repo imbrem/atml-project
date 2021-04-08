@@ -5,7 +5,7 @@ Creates a PyTorch DataLoader with batched sequences.
 """
 
 import torch
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset, DataLoader
 from pathlib import Path
 import random
 
@@ -62,8 +62,12 @@ def one_hot_token_list(token_list, max_token_id):
     return one_hot_list
 
 
-def transform_sequence_list(sequence_list, max_token_id):
-    one_hot_sequence_list = one_hot_token_list(sequence_list, max_token_id)
+def transform_sequence_list(sequence_list, max_token_id, use_embeddings=False):
+    if use_embeddings:  # if embeddings are used do not one-hot encode
+        one_hot_sequence_list = one_hot_token_list(sequence_list, max_token_id)
+    else:
+        one_hot_sequence_list = sequence_list
+
     sequences = torch.nn.utils.rnn.pad_sequence(one_hot_sequence_list,
                                                 batch_first=True)
     return sequences
@@ -87,7 +91,8 @@ def transform_target_list(target_list, n_targets, max_token_id):
     return targets
 
 
-def prepare_sequences_and_targets(token_lists, n_targets, max_token_id):
+def prepare_sequences_and_targets(token_lists, n_targets, max_token_id,
+                                  use_embeddings=False):
     """ Transforms token ID lists into tensors.
 
     Adds zero-vector padding to the end of sequence if the sequences have
@@ -100,6 +105,31 @@ def prepare_sequences_and_targets(token_lists, n_targets, max_token_id):
     targets = transform_target_list(target_list, n_targets, max_token_id)
 
     return sequences, targets
+
+
+def get_loaders(params, fold_id, n_train):
+    train_dataset = BabiRNNDataset(params['root_dir'], fold_id,
+                                   params['task_id'],
+                                   params['n_targets'], split='train',
+                                   n_train=n_train)
+    train_loader = DataLoader(train_dataset,
+                              batch_size=params['batch_size'],
+                              shuffle=True)
+
+    val_dataset = BabiRNNDataset(params['root_dir'], fold_id,
+                                 params['task_id'],
+                                 params['n_targets'],
+                                 split='validation')
+    val_loader = DataLoader(val_dataset,
+                            batch_size=params['batch_size'],
+                            shuffle=True)
+
+    test_dataset = BabiRNNDataset(params['root_dir'], fold_id,
+                                  params['task_id'],
+                                  params['n_targets'], split='test')
+    test_loader = DataLoader(test_dataset, shuffle=False)
+
+    return train_loader, val_loader, test_loader
 
 
 class BabiRNNDataset(Dataset):
@@ -115,7 +145,7 @@ class BabiRNNDataset(Dataset):
     """
 
     def __init__(self, root_dir, fold_id, task_id, n_targets=1,
-                 split='train', n_train=0):
+                 split='train', n_train=0, use_embeddings=False):
         """
         Args:
             root_dir (string): Path to the fold root directory.
@@ -138,7 +168,8 @@ class BabiRNNDataset(Dataset):
         data = get_sequence_and_target_lists_from_file(filename, n_targets,
                                                        n_train)
         self.sequences, self.targets = \
-            prepare_sequences_and_targets(data, n_targets, max_token_id)
+            prepare_sequences_and_targets(data, n_targets, max_token_id,
+                                          use_embeddings=use_embeddings)
 
     def __len__(self):
         return len(self.sequences)
