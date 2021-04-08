@@ -16,6 +16,7 @@ treated as in a classification problem.
 import torch
 import torch.nn as nn
 
+
 class BaselineRNN(nn.Module):
     """Baseline RNN class.
 
@@ -24,11 +25,11 @@ class BaselineRNN(nn.Module):
     thereby changing the behaviour.
     """
 
-    def __init__(self, input_size, hidden_size, n_targets=1):
+    def __init__(self, input_size, hidden_size, n_targets=1, output_size=None):
         super(BaselineRNN, self).__init__()
         self.input_size = input_size
         self.hidden_size = hidden_size
-        self.output_size = self.input_size
+        self.output_size = output_size if output_size is not None else self.input_size
         self.n_targets = n_targets + (
             1 if n_targets > 1 else 0)  # special eos symbol
 
