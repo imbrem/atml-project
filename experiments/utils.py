@@ -67,6 +67,7 @@ def do_epoch(
                     batch.batch.cuda())
         y = batch.y.cuda()
         loss = criterion(out, y)
+        loss.backward()
         epoch_loss += float(loss)
         if checker is not None:
             correct, total = checker(out, y)
