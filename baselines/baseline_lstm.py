@@ -38,7 +38,8 @@ class BaselineLSTM(nn.Module):
         else:
             self.embedding = nn.Identity()
 
-        self.lstm_layer = nn.LSTM(input_size=input_size, hidden_size=hidden_size,
+        self.lstm_layer = nn.LSTM(input_size=self.input_size,
+                                  hidden_size=self.hidden_size,
                                   proj_size=self.output_size, batch_first=True)
 
     def forward(self, sequences):
