@@ -69,7 +69,7 @@ def heap_graph(n: int) -> DiGraph:
     result.add_edges_from(
         (parent(i), i) for i in range(0, n) if parent(i) is not None
     )
-    assert is_heapgraph(result)
+    assert is_heap_graph(result)
     return result
 
 
@@ -93,17 +93,22 @@ def make_heap_test_gnn_datapoints(
     `categorize` determines whether to one-hot encode the chosen graph generator as an additional set of data points to predict.
     """
     data_list = []
+    graph_generators = list(enumerate(graph_generators))
     no_generators = len(graph_generators)
-    for i, (gf, g_heap_graph) in random.choices(enumerate(graph_generators), weights=graph_probabilities):
-        nodes, is_heap = maybe_make_heap()
-        n = nodes.shape[-1]
+    for i, (gf, g_heap_graph) in random.choices(graph_generators, weights=graph_probabilities, k=n):
+        nodes, is_heap = maybe_make_heap(p_heap=p_heap, min_len=min_len, max_len=max_len)
+        n = nodes.shape[0]
         g = gf(n)
         g_is_heap = is_heap_graph(g)
-        data = from_networkx_fixed(g(n))
+        data = from_networkx_fixed(g)
+        data.x = nodes
         if categorize:
-            data.y = torch.zeros((no_generators + 1))
-            data.y[i] = 1.0
-        data.y[-1] = int(is_heap_graph and is_heap)
+            if is_heap and g_is_heap:
+                data.y = torch.tensor([n], dtype=torch.long)
+            else:
+                data.y = torch.tensor([i], dtype=torch.long)
+        else:
+            data.y = torch.tensor([int(is_heap and g_is_heap)], dtype=torch.long)
         data_list.append(data)
 
     return data_list
