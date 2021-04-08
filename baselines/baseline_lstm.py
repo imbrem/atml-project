@@ -22,13 +22,21 @@ from torch.nn import functional as F
 class BaselineLSTM(nn.Module):
     """Baseline LSTM class."""
 
-    def __init__(self, input_size, hidden_size, n_targets=1):
+    def __init__(self, input_size, hidden_size, n_targets=1,
+                 embedding_size=50, use_embeddings=False):
         super(BaselineLSTM, self).__init__()
         self.input_size = input_size
         self.hidden_size = hidden_size
         self.output_size = self.input_size
         self.n_targets = n_targets + (
             1 if n_targets > 1 else 0)  # special eos symbol
+
+        if use_embeddings:
+            self.input_size = embedding_size
+            self.embedding = nn.Embedding(num_embeddings=self.input_size + 1,
+                                          embedding_dim=embedding_size)
+        else:
+            self.embedding = nn.Identity()
 
         self.lstm_layer = nn.LSTM(input_size=input_size, hidden_size=hidden_size,
                                   proj_size=self.output_size, batch_first=True)
@@ -41,6 +49,7 @@ class BaselineLSTM(nn.Module):
             output: [batch, n_outputs, output_size]; output_size=max_token_id
             hidden: [batch, num_layers=1, hidden_size]
         """
+        sequences = self.embedding(sequences)
         output, hidden = self.lstm_layer(sequences)
         return output[:, -self.n_targets:, :], hidden
 

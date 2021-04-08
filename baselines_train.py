@@ -147,7 +147,8 @@ if __name__ == '__main__':
             elif model_type == 'lstm':
                 model = BaselineLSTM(input_size=params['max_token_id'],
                                      hidden_size=params['hidden_size'],
-                                     n_targets=params['n_targets'])
+                                     n_targets=params['n_targets'],
+                                     use_embeddings=use_embeddings)
 
             wandb.watch(model)
             wandb.config.update(params)
