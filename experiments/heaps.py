@@ -8,7 +8,8 @@ from experiments.utils import from_networkx_fixed, disconnected_graph
 from networkx import DiGraph
 from typing import Optional, List, Any, Tuple
 from heapq import heapify
-from tqdm import tqdm
+from tqdm import tqdm, trange
+
 
 def parent(i: int) -> Optional[int]:
     """
@@ -96,7 +97,8 @@ def make_heap_test_gnn_datapoints(
     graph_generators = list(enumerate(graph_generators))
     no_generators = len(graph_generators)
     for i, (gf, g_is_heap) in tqdm(random.choices(graph_generators, weights=graph_probabilities, k=n), total=n):
-        nodes, is_heap = maybe_make_heap(p_heap=p_heap, min_len=min_len, max_len=max_len)
+        nodes, is_heap = maybe_make_heap(
+            p_heap=p_heap, min_len=min_len, max_len=max_len)
         n = nodes.shape[0]
         g = gf(n)
         data = from_networkx_fixed(g)
@@ -107,20 +109,27 @@ def make_heap_test_gnn_datapoints(
             else:
                 data.y = torch.tensor([2*i + 1], dtype=torch.long)
         else:
-            data.y = torch.tensor([int(is_heap and g_is_heap)], dtype=torch.long)
+            data.y = torch.tensor(
+                [int(is_heap and g_is_heap)], dtype=torch.long)
         data_list.append(data)
 
     return data_list
 
-def nodes_to_rnn_datapoint(
-    nodes,
-    is_heap,
+
+def make_heap_test_rnn_datapoints(
+    n,
+    p_heap: float = 0.5,
     min_len: int = 1,
     max_len: int = MAX_LEN,
-    p_heap_graph: Optional[float] = None,
-    and_y: bool = True
 ):
-    """
-    Convert an array, which may be a heap, into a graph datapoint for an RNN
-    """
-    raise NotImplementedError()
+    xs = []
+    ys = []
+    for _ in trange(n):
+        nodes, is_heap = maybe_make_heap(
+            p_heap=p_heap, min_len=min_len, max_len=max_len)
+        xs.append(nodes)
+        y = torch.zeros((2))
+        y[int(is_heap)] = 1.0
+        ys.append(y)
+
+    return xs, ys
