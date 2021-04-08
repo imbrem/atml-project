@@ -127,7 +127,8 @@ def make_heap_test_rnn_datapoints(
     for _ in trange(n):
         nodes, is_heap = maybe_make_heap(p_heap=p_heap, min_len=min_len, max_len=max_len)
         x = nodes.view((-1, 1))
-        L = x.shape[0]
+        to_pad = max_len - x.shape[0]
+        assert to_pad >= 0
         y = torch.zeros((2))
         data.append((x, y))
 
