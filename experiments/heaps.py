@@ -32,7 +32,7 @@ def is_heap(l) -> bool:
 MAX_LEN = 64
 
 
-def make_array(min_len: int = 1, max_len: int = MAX_LEN, p_heapify: float = 0.4) -> Tuple[List[int], bool]:
+def maybe_make_heap(min_len: int = 1, max_len: int = MAX_LEN, p_heapify: float = 0.4) -> Tuple[List[int], bool]:
     """
     Construct a random array of length between `min_len` and `max_len`, with probability `p_heapify` of being a heap.
     """
