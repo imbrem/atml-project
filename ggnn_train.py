@@ -14,7 +14,7 @@ import wandb
 import os
 import argparse
 
-SEED = 8
+SEED = 213
 N_THREADS = 1
 N_FOLDS = 10
 
