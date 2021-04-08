@@ -48,7 +48,7 @@ def get_parameters_for_task(task_id):
     elif task_id == 18:
         # NOTE: original parameters['learning_rate'] = 0.01
         parameters['n_train_to_try'] = [50, 250, 500]
-        parameters['learning_rate'] = 0.01
+        parameters['learning_rate'] = 0.003
         parameters['max_iters'] = 400
         parameters['n_validation'] = 50
         parameters['state_size'] = 3
