@@ -8,7 +8,7 @@ from experiments.utils import from_networkx_fixed, disconnected_graph
 from networkx import DiGraph
 from typing import Optional, List, Any, Tuple
 from heapq import heapify
-
+from tqdm import tqdm
 
 def parent(i: int) -> Optional[int]:
     """
@@ -95,7 +95,7 @@ def make_heap_test_gnn_datapoints(
     data_list = []
     graph_generators = list(enumerate(graph_generators))
     no_generators = len(graph_generators)
-    for i, (gf, g_is_heap) in random.choices(graph_generators, weights=graph_probabilities, k=n):
+    for i, (gf, g_is_heap) in tqdm(random.choices(graph_generators, weights=graph_probabilities, k=n), total=n):
         nodes, is_heap = maybe_make_heap(p_heap=p_heap, min_len=min_len, max_len=max_len)
         n = nodes.shape[0]
         g = gf(n)
