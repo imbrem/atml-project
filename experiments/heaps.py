@@ -122,6 +122,7 @@ def make_heap_test_rnn_datapoints(
     min_len: int = 1,
     max_len: int = MAX_LEN,
 ):
+    #TODO: pad to max size
     data = []
     for _ in trange(n):
         nodes, is_heap = maybe_make_heap(p_heap=p_heap, min_len=min_len, max_len=max_len)
