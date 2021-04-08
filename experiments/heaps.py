@@ -130,7 +130,7 @@ def make_heap_test_rnn_datapoints(
         assert to_pad >= 0
         x = torch.nn.functional.pad(
             nodes, (0, to_pad), "constant", 1.0
-        )
+        ).view((-1, 1))
         y = torch.zeros((2))
         data.append((x, y))
 
