@@ -31,3 +31,12 @@ def random_two_graph(n):
     A graph for which, on average, every node is connected to two other nodes
     """
     return nx.fast_gnp_random_graph(n, 2/(n*n), directed=True)
+
+def disconnected_graph(n):
+    """
+    A graph with no edges, and n nodes
+    """
+    g = nx.DiGraph()
+    for i in range(0, n):
+        g.add_node(i)
+    return g

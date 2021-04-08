@@ -4,10 +4,11 @@ import networkx as nx
 import random
 import torch.nn as nn
 
-from experiments.utils import from_networkx_fixed
+from experiments.utils import from_networkx_fixed, disconnected_graph
 from networkx import DiGraph
 from typing import Optional, List, Any, Tuple
 from heapq import heapify
+
 
 def parent(i: int) -> Optional[int]:
     """
@@ -32,15 +33,15 @@ def is_heap(l) -> bool:
 MAX_LEN = 64
 
 
-def maybe_make_heap(min_len: int = 1, max_len: int = MAX_LEN, p_heapify: float = 0.4) -> Tuple[List[int], bool]:
+def maybe_make_heap(p_heap: float = 0.5, min_len: int = 1, max_len: int = MAX_LEN) -> Tuple[List[int], bool]:
     """
-    Construct a random array of length between `min_len` and `max_len`, with probability `p_heapify` of being a heap.
+    Construct a random array of length between `min_len` and `max_len`, with probability `p_heap` of being a heap.
     """
     result = []
     n = random.randint(min_len, max_len)
     for i in range(0, n):
         result.append(random.random())
-    if random.random() < p_heapify:
+    if random.random() < p_heap:
         heapify(result)
         result_is_heap = True
     else:
@@ -59,7 +60,7 @@ def is_heap_graph(graph):
     return True
 
 
-def make_heap_graph(n: int) -> DiGraph:
+def heap_graph(n: int) -> DiGraph:
     """
     Make a graph representing a heap with root node `0`; return a networkx digraoh
     """
@@ -72,46 +73,40 @@ def make_heap_graph(n: int) -> DiGraph:
     return result
 
 
-def nodes_to_gnn_datapoint(
-    nodes,
-    is_heap,
+def make_heap_test_gnn_datapoints(
+    n,
+    p_heap: float = 0.5,
     min_len: int = 1,
     max_len: int = MAX_LEN,
-    p_heap_graph: Optional[float] = None,
-    and_y: bool = True
+    graph_generators: List[Any] = [(heap_graph, True)],
+    graph_probabilities: List[Any] = None,
+    categorize: bool = False
 ):
     """
-    Convert an array, which may be a heap, into a graph datapoint for a GNN
+    Generate n graph datapoints for a GNN for the heap testing problem.
+
+    `graph_generators` is a list of functions taking in a node count and returning a graph, and whether
+    a heap paired with such a graph should be categorized as a heap, or `None`, 
+    in which case a heap graph will always be used. `graph_probabilities` is a weighted list of
+    probabilities a given graph will be chosen; if not proveded, a generator will be chosen at random.
+
+    `categorize` determines whether to one-hot encode the chosen graph generator as an additional set of data points to predict.
     """
-    n = nodes.shape[0]
-    if p_heap_graph is not None or random.random() < p_heap_graph:
-        graph = heapgraph(n)
-        is_hg = True
-    else:
-        graph = nx.erdos_renyi_graph(n, 1/(n + 1), directed=True)
-        is_hg = is_heapgraph(graph)
+    data_list = []
+    no_generators = len(graph_generators)
+    for i, (gf, g_heap_graph) in random.choices(enumerate(graph_generators), weights=graph_probabilities):
+        nodes, is_heap = maybe_make_heap()
+        n = nodes.shape[-1]
+        g = gf(n)
+        g_is_heap = is_heap_graph(g)
+        data = from_networkx_fixed(g(n))
+        if categorize:
+            data.y = torch.zeros((no_generators + 1))
+            data.y[i] = 1.0
+        data.y[-1] = int(is_heap_graph and is_heap)
+        data_list.append(data)
 
-    data = from_networkx_fixed(graph)
-
-    data.x = nodes
-    if and_y:
-        data.y = torch.tensor([float(is_heap and is_hg)])
-    else:
-        data.y = torch.tensor([
-            float(is_heap),
-            float(is_hg)
-        ])
-
-    return data
-
-
-def make_gnn_datapoint(min_len: int = 1, max_len: int = MAX_LEN, p_heapify: float = 0.75, p_heap_graph: Optional[float] = None, and_y: bool = True) -> List[int]:
-    """
-    Make a datapoint for a GNN
-    """
-    (nodes, is_heap) = make_array(min_len, max_len, p_heapify)
-    return nodes_to_gnn_datapoint(nodes, is_heap, min_len=min_len, max_len=max_len, p_heap_graph=p_heap_graph, and_y=and_y)
-
+    return data_list
 
 def nodes_to_rnn_datapoint(
     nodes,
