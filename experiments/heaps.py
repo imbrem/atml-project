@@ -117,19 +117,16 @@ def make_heap_test_gnn_datapoints(
 
 
 def make_heap_test_rnn_datapoints(
-    n,
+    n
     p_heap: float = 0.5,
     min_len: int = 1,
     max_len: int = MAX_LEN,
 ):
-    xs = []
-    ys = []
+    data = []
     for _ in trange(n):
-        nodes, is_heap = maybe_make_heap(
+        x, is_heap = maybe_make_heap(
             p_heap=p_heap, min_len=min_len, max_len=max_len)
-        xs.append(nodes)
         y = torch.zeros((2))
-        y[int(is_heap)] = 1.0
-        ys.append(y)
+        data.append((x, y))
 
-    return xs, ys
+    return data
