@@ -24,7 +24,7 @@ device = 'cuda' if torch.cuda.is_available() else 'cpu'
 def train(train_loader, val_loader, model, optimizer,
           criterion, params,
           run_desc, patience=0,
-          delta=0.005, log=True):
+          delta=0.001, log=True):
     """ Training procedure for the given number of iterations. """
     best_val_loss = None
     best_train_loss, best_train_acc, best_val_acc = 0., 0., 0.
