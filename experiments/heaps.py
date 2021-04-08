@@ -117,7 +117,7 @@ def make_heap_test_gnn_datapoints(
 
 
 def make_heap_test_rnn_datapoints(
-    n
+    n,
     p_heap: float = 0.5,
     min_len: int = 1,
     max_len: int = MAX_LEN,
