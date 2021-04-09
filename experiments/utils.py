@@ -63,22 +63,18 @@ def do_epoch(
     count = 0
     for batch in data:
         count += 1
-        out = model(batch.x.cuda(), batch.edge_index.cuda(),
-                    batch.batch.cuda())
-        y = batch.y.cuda()
-        loss = criterion(out, y)
+        out = model(batch)
+        loss = criterion(out, batch)
         loss.backward()
         epoch_loss += float(loss)
         if checker is not None:
-            correct, total = checker(out, y)
+            correct, total = checker(out, batch)
             assert total >= correct
             epoch_correct += int(correct)
             epoch_total += int(total)
         if opt is not None:
             opt.step()
             opt.zero_grad()
-        del y
-        del out
     result = {
         f"{prefix}loss": epoch_loss / count,
     }

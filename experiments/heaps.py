@@ -132,7 +132,7 @@ def make_heap_test_rnn_datapoints(
             nodes.view(-1), (0, to_pad), "constant", 1.0
         ).view((-1, 1))
         assert x.shape[0] == max_len
-        y = torch.zeros((2))
+        y = torch.tensor([int(is_heap)], dtype=torch.long)
         data.append((x, y))
 
     return data

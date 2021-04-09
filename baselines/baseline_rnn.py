@@ -49,10 +49,10 @@ class BaselineRNN(nn.Module):
         """
 
         # [batch_size, hidden_size]
-        hidden = torch.zeros(sequences.size(0), self.hidden_size)
+        hidden = torch.zeros(sequences.size(0), self.hidden_size).to(device=sequences.device)
         # [batch_size, n_targets, output_size=max_token_id]
         output = torch.zeros(sequences.size(0), self.n_targets,
-                             self.output_size)
+                             self.output_size).to(device=sequences.device)
 
         # off-the-shelf RNN would remove this loop;
         # the outputs would then be computed on the `outputs` variable of
