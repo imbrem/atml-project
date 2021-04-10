@@ -25,10 +25,13 @@ def make_ggnn(
     Make a GGNN having a given implementation
     """
     if ggnn_impl == 'torch_geometric':
-        return torch_geometric.nn.GatedGraphConv(out_channels=state_size, num_layers=num_layers, aggr=aggr,
+        return torch_geometric.nn.GatedGraphConv(out_channels=state_size,
+                                                 num_layers=num_layers,
+                                                 aggr=aggr,
                                                  bias=bias, **kwargs)
     elif ggnn_impl == 'team2':
-        return BaseGGNN(state_size=state_size, num_layers=num_layers, aggr=aggr, bias=bias, **kwargs)
+        return BaseGGNN(state_size=state_size, num_layers=num_layers, aggr=aggr,
+                        bias=bias, **kwargs)
     else:
         raise ValueError(f"Invalid GGNN implementation {ggnn_impl}")
 
@@ -37,15 +40,30 @@ def make_ggnn(
 class BaseGGNN(MessagePassing):
     def __init__(self, state_size: int, num_layers: int,
                  aggr: str = 'add',
-                 bias: bool = True, total_edge_types: int = 4, **kwargs):
+                 bias: bool = True, total_edge_types: int = 4,
+                 use_resnet=False):
         super(BaseGGNN, self).__init__(aggr=aggr)
 
         self.state_size = state_size
         self.out_channels = state_size
         self.num_layers = num_layers
+        self.use_resnet = use_resnet
 
         self.weight = Param(Tensor(num_layers, state_size, state_size))
-        self.rnn = torch.nn.GRUCell(state_size, state_size, bias=bias)
+
+        if self.use_resnet:
+            self.mlp_2 = torch.nn.Sequential(
+                torch.nn.Linear(state_size, state_size),
+                torch.nn.ReLU(inplace=True),
+                torch.nn.Linear(state_size, state_size),
+            )
+            self.mlp_1 = torch.nn.Sequential(
+                torch.nn.Linear(state_size, state_size),
+                torch.nn.ReLU(inplace=True),
+                torch.nn.Linear(state_size, state_size),
+            )
+        else:
+            self.rnn = torch.nn.GRUCell(state_size, state_size, bias=bias)
 
         # edge_type_tensor should be of the type (e, D, D), where e is the
         # total number of edge types
@@ -62,7 +80,15 @@ class BaseGGNN(MessagePassing):
         glorot(self.weight)
         glorot(self.edge_type_weight)
         glorot(self.edge_type_bias)
-        self.rnn.reset_parameters()
+        if self.use_resnet:
+            for layer in self.mlp_1:
+                if hasattr(layer, 'reset_parameters'):
+                    layer.reset_parameters()
+            for layer in self.mlp_2:
+                if hasattr(layer, 'reset_parameters'):
+                    layer.reset_parameters()
+        else:
+            self.rnn.reset_parameters()
 
     def forward(self, x: Tensor, edge_index: Adj,
                 edge_attr: OptTensor = None) -> Tensor:
@@ -83,7 +109,10 @@ class BaseGGNN(MessagePassing):
             m = self.propagate(edge_index, x=m,
                                edge_attr=edge_attr,
                                size=None)
-            x = self.rnn(m, x)
+            if self.use_resnet:
+                x = self.mlp_2(m + self.mlp_1(x))
+            else:
+                x = self.rnn(m, x)
 
         return x
 
@@ -182,10 +211,12 @@ class BaseGraphLevelGGNN(nn.Module):
 class BaseGraphLevelGGSNN(nn.Module):
     def __init__(self, state_size: int, num_layers: int, aggr: str = 'add',
                  bias: bool = True, total_edge_types: int = 4,
-                 annotation_size=1, pred_steps=2, classification_categories=4, **kwargs):
+                 annotation_size=1, pred_steps=2, classification_categories=4,
+                 **kwargs):
         super(BaseGraphLevelGGSNN, self).__init__()
         self.pred_steps = pred_steps
-        self.ggnn = BaseGGNN(state_size=state_size, num_layers=num_layers, aggr=aggr,
+        self.ggnn = BaseGGNN(state_size=state_size, num_layers=num_layers,
+                             aggr=aggr,
                              bias=bias, total_edge_types=total_edge_types,
                              **kwargs)
         self.processing_net1 = nn.Sequential(
