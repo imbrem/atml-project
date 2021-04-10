@@ -111,7 +111,7 @@ def evaluate(loader, model, criterion):
 
 
 def run_experiment(task_id, dataset='babi_graph', all_data=False, patience=250,
-                   log=True):
+                   log=True, use_resnet=False):
     if log:
         wandb.init(project='ggsnn')
     params = ggnn_parameters.get_parameters_for_task(task_id)
@@ -141,13 +141,15 @@ def run_experiment(task_id, dataset='babi_graph', all_data=False, patience=250,
                     num_layers=params['n_layers'],
                     total_edge_types=n_edge_types,
                     annotation_size=params['annotation_size'],
-                    classification_categories=2).to(
+                    classification_categories=2,
+                    use_resnet=use_resnet).to(
                     device)
             elif params['mode'] == 'node_level':
                 model = BaseNodeSelectionGGNN(
                     state_size=params['state_size'],
                     num_layers=params['n_layers'],
-                    total_edge_types=n_edge_types).to(
+                    total_edge_types=n_edge_types,
+                    use_resnet=use_resnet).to(
                     device)
             elif params['mode'] == 'seq_graph_level':
                 raise NotImplementedError()
@@ -156,7 +158,8 @@ def run_experiment(task_id, dataset='babi_graph', all_data=False, patience=250,
                     state_size=params['state_size'],
                     num_layers=params['n_layers'],
                     total_edge_types=n_edge_types,
-                    annotation_size=params['annotation_size']
+                    annotation_size=params['annotation_size'],
+                    use_resnet=use_resnet
                 ).to(device)
             elif params['mode'] == 'share_seq_node_level':
                 raise NotImplementedError()
@@ -231,6 +234,8 @@ if __name__ == "__main__":
     parser.add_argument('--dataset', type=str, default='babi_graph',
                         choices=['babi_graph', 'sequential_graph'])
     parser.add_argument('--all_data', type=bool, default=False)
+    parser.add_argument('--use_resnet', type=bool, default=False)
     parser.add_argument('--log', '-log', type=bool, default=True)
     args = parser.parse_args()
-    run_experiment(task_id=args.task_id, log=args.log, dataset=args.dataset)
+    run_experiment(task_id=args.task_id, log=args.log, dataset=args.dataset,
+                   use_resnet=args.use_resnet)
