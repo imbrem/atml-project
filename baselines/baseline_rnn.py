@@ -16,6 +16,7 @@ treated as in a classification problem.
 import torch
 import torch.nn as nn
 
+
 class BaselineRNN(nn.Module):
     """Baseline RNN class.
 
@@ -24,12 +25,12 @@ class BaselineRNN(nn.Module):
     thereby changing the behaviour.
     """
 
-    def __init__(self, input_size, hidden_size, embedding_size=50, n_targets=1,
-                 use_embeddings=False):
+    def __init__(self, input_size, hidden_size, n_targets=1,
+                 output_size=None, embedding_size=50, use_embeddings=False):
         super(BaselineRNN, self).__init__()
         self.input_size = input_size
         self.hidden_size = hidden_size
-        self.output_size = self.input_size
+        self.output_size = output_size if output_size is not None else self.input_size
         self.n_targets = n_targets + (
             1 if n_targets > 1 else 0)  # special eos symbol
 
@@ -60,10 +61,10 @@ class BaselineRNN(nn.Module):
         sequences = self.embedding(sequences)
 
         # [batch_size, hidden_size]
-        hidden = torch.zeros(sequences.size(0), self.hidden_size)
+        hidden = torch.zeros(sequences.size(0), self.hidden_size).to(device=sequences.device)
         # [batch_size, n_targets, output_size=max_token_id]
         output = torch.zeros(sequences.size(0), self.n_targets,
-                             self.output_size)
+                             self.output_size).to(device=sequences.device)
 
         # off-the-shelf RNN would remove this loop;
         # the outputs would then be computed on the `outputs` variable of
