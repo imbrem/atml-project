@@ -25,10 +25,13 @@ def make_ggnn(
     Make a GGNN having a given implementation
     """
     if ggnn_impl == 'torch_geometric':
-        return torch_geometric.nn.GatedGraphConv(out_channels=state_size, num_layers=num_layers, aggr=aggr,
+        return torch_geometric.nn.GatedGraphConv(out_channels=state_size,
+                                                 num_layers=num_layers,
+                                                 aggr=aggr,
                                                  bias=bias, **kwargs)
     elif ggnn_impl == 'team2':
-        return BaseGGNN(state_size=state_size, num_layers=num_layers, aggr=aggr, bias=bias, **kwargs)
+        return BaseGGNN(state_size=state_size, num_layers=num_layers, aggr=aggr,
+                        bias=bias, **kwargs)
     else:
         raise ValueError(f"Invalid GGNN implementation {ggnn_impl}")
 
@@ -182,10 +185,12 @@ class BaseGraphLevelGGNN(nn.Module):
 class BaseGraphLevelGGSNN(nn.Module):
     def __init__(self, state_size: int, num_layers: int, aggr: str = 'add',
                  bias: bool = True, total_edge_types: int = 4,
-                 annotation_size=1, pred_steps=2, classification_categories=4, **kwargs):
+                 annotation_size=1, pred_steps=2, classification_categories=4,
+                 **kwargs):
         super(BaseGraphLevelGGSNN, self).__init__()
         self.pred_steps = pred_steps
-        self.ggnn = BaseGGNN(state_size=state_size, num_layers=num_layers, aggr=aggr,
+        self.ggnn = BaseGGNN(state_size=state_size, num_layers=num_layers,
+                             aggr=aggr,
                              bias=bias, total_edge_types=total_edge_types,
                              **kwargs)
         self.processing_net1 = nn.Sequential(
