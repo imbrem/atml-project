@@ -6,11 +6,10 @@ https://github.com/yujiali/ggnn/blob/master/babi/babi_rnn_train.lua
 https://github.com/yujiali/ggnn/blob/master/babi/run_rnn_baselines.py
 """
 
-from baselines_data import BabiRNNDataset
+from baselines_data import get_loaders
 from baselines.baseline_rnn import BaselineRNN
 from baselines.baseline_lstm import BaselineLSTM
 from torch import nn
-from torch.utils.data import DataLoader
 import baselines_parameters
 import torch
 import argparse
@@ -24,31 +23,6 @@ N_THREADS = 1
 N_FOLDS = 10
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
-
-
-def get_loaders(params, fold_id, n_train):
-    train_dataset = BabiRNNDataset(params['root_dir'], fold_id,
-                                   params['task_id'],
-                                   params['n_targets'], split='train',
-                                   n_train=n_train)
-    train_loader = DataLoader(train_dataset,
-                              batch_size=params['batch_size'],
-                              shuffle=True)
-
-    val_dataset = BabiRNNDataset(params['root_dir'], fold_id,
-                                 params['task_id'],
-                                 params['n_targets'],
-                                 split='validation')
-    val_loader = DataLoader(val_dataset,
-                            batch_size=params['batch_size'],
-                            shuffle=True)
-
-    test_dataset = BabiRNNDataset(params['root_dir'], fold_id,
-                                  params['task_id'],
-                                  params['n_targets'], split='test')
-    test_loader = DataLoader(test_dataset, shuffle=False)
-
-    return train_loader, val_loader, test_loader
 
 
 def train(model, train_loader, val_loader, params, run_desc,
@@ -145,6 +119,7 @@ if __name__ == '__main__':
     parser.add_argument('--model', type=str, help="RNN/LSTM", choices=['rnn',
                                                                        'lstm'])
     parser.add_argument('--all_data', type=bool, default=False)
+    parser.add_argument('--use_embeddings', type=bool, default=False)
     parser.add_argument('--patience', type=int, default=250)
     args = parser.parse_args()
 
@@ -152,6 +127,7 @@ if __name__ == '__main__':
     task_id = args.task_id
     all_data = args.all_data
     patience = args.patience
+    use_embeddings = args.use_embeddings
     params = baselines_parameters.get_parameters_for_task(model_type, task_id)
     n_train_to_try = params['n_train_to_try'] if not all_data else [0]
 
@@ -166,11 +142,13 @@ if __name__ == '__main__':
             if model_type == 'rnn':
                 model = BaselineRNN(input_size=params['max_token_id'],
                                     hidden_size=params['hidden_size'],
-                                    n_targets=params['n_targets'])
+                                    n_targets=params['n_targets'],
+                                    use_embeddings=use_embeddings)
             elif model_type == 'lstm':
                 model = BaselineLSTM(input_size=params['max_token_id'],
                                      hidden_size=params['hidden_size'],
-                                     n_targets=params['n_targets'])
+                                     n_targets=params['n_targets'],
+                                     use_embeddings=use_embeddings)
 
             wandb.watch(model)
             wandb.config.update(params)
@@ -204,13 +182,6 @@ if __name__ == '__main__':
             wandb.run.summary['final_val_acc_{}'.format(run_desc)] = \
                 fold_performance[3]
             fold_performances.append(fold_performance)
-            # print(
-            #     'final_train_loss_{}: {}'.format(run_desc, fold_performance[0]))
-            # print('final_val_loss_{}: {}'.format(run_desc, fold_performance[1]))
-            # print(
-            #     'final_train_acc_{}: {}'.format(run_desc, fold_performance[2]))
-            # print('final_val_acc_{}: {}\n'.format(run_desc, fold_performance[
-            #     3]))
 
             test_loss, test_acc = evaluate(model, test_loader)
             wandb.run.summary['test_loss_{}'.format(run_desc)] = test_loss
@@ -229,14 +200,6 @@ if __name__ == '__main__':
             final_performances[2]
         wandb.run.summary['val_acc_{}'.format(n_train)] = \
             final_performances[3]
-        # print(
-        #     'train_loss_{}: {}'.format(n_train, final_performances[0]))
-        # print(
-        #     'val_loss_{}: {}'.format(n_train, final_performances[1]))
-        # print(
-        #     'train_acc_{}: {}'.format(n_train, final_performances[2]))
-        # print(
-        #     'val_acc_{}: {}\n'.format(n_train, final_performances[3]))
 
         final_test_means = list(torch.tensor(
             fold_test_performances).mean(dim=0).numpy())
